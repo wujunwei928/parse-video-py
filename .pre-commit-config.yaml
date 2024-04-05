@@ -1,0 +1,28 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: check-yaml
+  - id: debug-statements
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+- repo: https://github.com/PyCQA/isort
+  rev: 5.12.0
+  hooks:
+    - id: isort
+      args:
+          - '--profile=black' # 防止和black冲突 https://github.com/PyCQA/isort/issues/1518
+          - '--line-length=88'
+- repo: https://github.com/psf/black
+  rev: 23.7.0
+  hooks:
+    - id: black
+      args:
+          - '--line-length=88'
+- repo: https://github.com/PyCQA/flake8
+  rev: 6.1.0
+  hooks:
+    - id: flake8
+      exclude: scrapy_spider/settings.py
+      args:
+          - '--max-line-length=88'
