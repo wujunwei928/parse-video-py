@@ -25,14 +25,38 @@ class DouYin(BaseParser):
 
         json_data = json.loads(render_data)
         data = json_data["app"]["videoInfoRes"]["item_list"][0]
+
+        # 获取图集图片地址
+        images = []
+        # 如果data含有 images，并且 images 是一个列表
+        if "images" in data and isinstance(data["images"], list):
+            # 获取每个图片的url_list中的第一个元素，非空时添加到images列表中
+            for img in data["images"]:
+                if (
+                    "url_list" in img
+                    and isinstance(img["url_list"], list)
+                    and len(img["url_list"]) > 0
+                    and len(img["url_list"][0]) > 0
+                ):
+                    images.append(img["url_list"][0])
+
+        # 获取视频播放地址
         video_url = data["video"]["play_addr"]["url_list"][0].replace("playwm", "play")
+        # 如果图集地址不为空时，因为没有视频，上面抖音返回的视频地址无法访问，置空处理
+        if len(images) > 0:
+            video_url = ""
+
         # 获取重定向后的mp4视频地址
-        video_mp4_url = await self.get_video_redirect_url(video_url)
+        # 图集时，视频地址为空，不处理
+        video_mp4_url = ""
+        if len(video_url) > 0:
+            video_mp4_url = await self.get_video_redirect_url(video_url)
 
         video_info = VideoInfo(
             video_url=video_mp4_url,
             cover_url=data["video"]["cover"]["url_list"][0],
             title=data["desc"],
+            images=images,
             author=VideoAuthor(
                 uid=data["author"]["unique_id"],
                 name=data["author"]["nickname"],

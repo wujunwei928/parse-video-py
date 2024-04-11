@@ -1,7 +1,7 @@
 import dataclasses
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Dict
+from typing import Dict, List
 
 import fake_useragent
 
@@ -38,8 +38,13 @@ class VideoAuthor:
     视频作者信息
     """
 
+    # 作者ID
     uid: str = ""
+
+    # 作者昵称
     name: str = ""
+
+    # 作者头像
     avatar: str = ""
 
 
@@ -49,10 +54,22 @@ class VideoInfo:
     视频信息
     """
 
+    # 视频播放地址
     video_url: str
+
+    # 视频封面地址
     cover_url: str
+
+    # 视频标题
     title: str = ""
+
+    # 音乐播放地址
     music_url: str = ""
+
+    # 图集图片地址列表
+    images: List[str] = dataclasses.field(default_factory=list)
+
+    # 视频作者信息
     author: VideoAuthor = VideoAuthor()
 
 
