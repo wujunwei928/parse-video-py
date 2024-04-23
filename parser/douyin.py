@@ -58,7 +58,7 @@ class DouYin(BaseParser):
             title=data["desc"],
             images=images,
             author=VideoAuthor(
-                uid=data["author"]["unique_id"],
+                uid=data["author"]["sec_uid"],
                 name=data["author"]["nickname"],
                 avatar=data["author"]["avatar_thumb"]["url_list"][0],
             ),
