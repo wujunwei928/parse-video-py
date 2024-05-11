@@ -70,7 +70,7 @@ class VideoInfo:
     images: List[str] = dataclasses.field(default_factory=list)
 
     # 视频作者信息
-    author: VideoAuthor = VideoAuthor()
+    author: VideoAuthor = dataclasses.field(default_factory=VideoAuthor)
 
 
 class BaseParser(ABC):
