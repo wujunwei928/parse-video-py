@@ -32,7 +32,7 @@ async def share_url_parse(url: str):
         return {"code": 200, "msg": "解析成功", "data": video_info.__dict__}
     except Exception as err:
         return {
-            "code": 200,
+            "code": 500,
             "msg": str(err),
         }
 
@@ -44,7 +44,7 @@ async def video_id_parse(source: VideoSource, video_id: str):
         return {"code": 200, "msg": "解析成功", "data": video_info.__dict__}
     except Exception as err:
         return {
-            "code": 200,
+            "code": 500,
             "msg": str(err),
         }
 
