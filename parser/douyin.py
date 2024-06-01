@@ -24,6 +24,14 @@ class DouYin(BaseParser):
         render_data = unquote(render_data)  # urldecode
 
         json_data = json.loads(render_data)
+
+        # 如果没有视频信息，获取并抛出异常
+        if len(json_data["app"]["videoInfoRes"]["item_list"]) == 0:
+            err_detail_msg = "failed to parse video info from HTML"
+            if len(filter_list := json_data["app"]["videoInfoRes"]["filter_list"]) > 0:
+                err_detail_msg = filter_list[0]["detail_msg"]
+            raise Exception(err_detail_msg)
+
         data = json_data["app"]["videoInfoRes"]["item_list"][0]
 
         # 获取图集图片地址
@@ -68,7 +76,8 @@ class DouYin(BaseParser):
     async def get_video_redirect_url(self, video_url: str) -> str:
         async with httpx.AsyncClient(follow_redirects=False) as client:
             response = await client.get(video_url, headers=self.get_default_headers())
-        return response.headers.get("location", "")
+        # 返回重定向后的地址，如果没有重定向则返回原地址(抖音中的西瓜视频,重定向地址为空)
+        return response.headers.get("location") or video_url
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
         req_url = f"https://www.iesdouyin.com/share/video/{video_id}/"
