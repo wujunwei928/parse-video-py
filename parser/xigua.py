@@ -1,9 +1,8 @@
 import json
-from urllib.parse import unquote
+import re
 
 import fake_useragent
 import httpx
-from parsel import Selector
 
 from .base import BaseParser, VideoAuthor, VideoInfo
 
@@ -39,14 +38,26 @@ class XiGua(BaseParser):
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 
-        sel = Selector(response.text)
-        render_data = sel.css("script#RENDER_DATA::text").get(default="")
-        if len(render_data) <= 0:
-            raise Exception("failed to parse render data from HTML")
-        render_data = unquote(render_data)  # urldecode
+        pattern = re.compile(
+            pattern=r"window\._ROUTER_DATA\s*=\s*(.*?)</script>",
+            flags=re.DOTALL,
+        )
+        find_res = pattern.search(response.text)
 
-        json_data = json.loads(render_data)
-        data = json_data["app"]["videoInfoRes"]["item_list"][0]
+        if not find_res or not find_res.group(1):
+            raise ValueError("parse video json info from html fail")
+
+        json_data = json.loads(find_res.group(1).strip())
+        original_video_info = json_data["loaderData"]["video_(id)/page"]["videoInfoRes"]
+
+        # 如果没有视频信息，获取并抛出异常
+        if len(original_video_info["item_list"]) == 0:
+            err_detail_msg = "failed to parse video info from HTML"
+            if len(filter_list := original_video_info["filter_list"]) > 0:
+                err_detail_msg = filter_list[0]["detail_msg"]
+            raise Exception(err_detail_msg)
+
+        data = original_video_info["item_list"][0]
         video_url = data["video"]["play_addr"]["url_list"][0].replace("playwm", "play")
 
         video_info = VideoInfo(
