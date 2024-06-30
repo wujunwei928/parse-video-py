@@ -58,6 +58,11 @@ class KuaiShou(BaseParser):
             response.raise_for_status()
 
         json_data = response.json()
+
+        # 判断result状态
+        if (result_code := json_data["result"]) != 1:
+            raise Exception(f"获取作品信息失败:result={result_code}")
+
         data = json_data["photo"]
 
         # 获取视频地址
