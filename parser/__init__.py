@@ -30,7 +30,7 @@ video_source_info_mapping = {
         "parser": DouPai,
     },
     VideoSource.DouYin: {
-        "domain_list": ["v.douyin.com"],
+        "domain_list": ["v.douyin.com", "www.iesdouyin.com", "www.douyin.com"],
         "parser": DouYin,
     },
     VideoSource.HaoKan: {

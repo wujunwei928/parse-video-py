@@ -12,6 +12,11 @@ class DouYin(BaseParser):
     """
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
+        # 支持电脑网页版链接 https://www.douyin.com/video/xxxxxx
+        if share_url.startswith("https://www.douyin.com/video/"):
+            video_id = share_url.strip("/").split("/")[-1]
+            share_url = self._get_request_url_by_video_id(video_id)
+
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(share_url, headers=self.get_default_headers())
             response.raise_for_status()
@@ -83,5 +88,8 @@ class DouYin(BaseParser):
         return response.headers.get("location") or video_url
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
-        req_url = f"https://www.iesdouyin.com/share/video/{video_id}/"
+        req_url = self._get_request_url_by_video_id(video_id)
         return await self.parse_share_url(req_url)
+
+    def _get_request_url_by_video_id(self, video_id) -> str:
+        return f"https://www.iesdouyin.com/share/video/{video_id}/"
