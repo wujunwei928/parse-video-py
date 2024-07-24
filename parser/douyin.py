@@ -30,8 +30,12 @@ class DouYin(BaseParser):
         if not find_res or not find_res.group(1):
             raise ValueError("parse video json info from html fail")
 
-        json_data = json.loads(find_res.group(1).strip())
-        original_video_info = json_data["loaderData"]["video_(id)/page"]["videoInfoRes"]
+        video_id_page = "video_(id)/page"
+        note_id_page = "note_(id)/page"
+        if video_id_page in json_data["loaderData"]:
+            original_video_info = json_data["loaderData"]["video_(id)/page"]["videoInfoRes"]
+        elif note_id_page in json_data["loaderData"]:
+            original_video_info = json_data["loaderData"]["note_(id)/page"]["videoInfoRes"]
 
         # 如果没有视频信息，获取并抛出异常
         if len(original_video_info["item_list"]) == 0:
