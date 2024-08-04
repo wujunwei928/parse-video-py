@@ -30,6 +30,8 @@ class DouYin(BaseParser):
         if not find_res or not find_res.group(1):
             raise ValueError("parse video json info from html fail")
 
+        json_data = json.loads(find_res.group(1).strip())
+
         # 获取链接返回json数据进行视频和图集判断,如果指定类型不存在，抛出异常
         # 返回的json数据中，视频字典类型为 video_(id)/page
         VIDEO_ID_PAGE_KEY  = "video_(id)/page"
