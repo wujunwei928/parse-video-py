@@ -31,7 +31,18 @@ class DouYin(BaseParser):
             raise ValueError("parse video json info from html fail")
 
         json_data = json.loads(find_res.group(1).strip())
-        original_video_info = json_data["loaderData"]["video_(id)/page"]["videoInfoRes"]
+
+        # 获取链接返回json数据进行视频和图集判断,如果指定类型不存在，抛出异常
+        # 返回的json数据中，视频字典类型为 video_(id)/page
+        VIDEO_ID_PAGE_KEY  = "video_(id)/page"
+        # 返回的json数据中，视频字典类型为 note_(id)/page
+        NOTE_ID_PAGE_KEY = "note_(id)/page"
+        if VIDEO_ID_PAGE_KEY  in json_data["loaderData"]:
+            original_video_info = json_data["loaderData"][VIDEO_ID_PAGE_KEY]["videoInfoRes"]
+        elif NOTE_ID_PAGE_KEY in json_data["loaderData"]:
+            original_video_info = json_data["loaderData"][NOTE_ID_PAGE_KEY]["videoInfoRes"]
+        else:
+            raise Exception("failed to parse Videos or Photo Gallery info from json")
 
         # 如果没有视频信息，获取并抛出异常
         if len(original_video_info["item_list"]) == 0:
