@@ -16,6 +16,11 @@ class XiGua(BaseParser):
         headers = {
             "User-Agent": fake_useragent.UserAgent(os=["android"]).random,
         }
+        if share_url.startswith("https://www.ixigua.com/"):
+            # 支持电脑网页版链接 https://www.douyin.com/video/xxxxxx
+            video_id = share_url.strip("/").split("/")[-1]
+            return await self.parse_video_id(video_id)
+
         async with httpx.AsyncClient(follow_redirects=False) as client:
             response = await client.get(share_url, headers=headers)
 

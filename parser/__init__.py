@@ -89,7 +89,7 @@ video_source_info_mapping = {
         "parser": WeiShi,
     },
     VideoSource.XiGua: {
-        "domain_list": ["v.ixigua.com"],
+        "domain_list": ["v.ixigua.com", "www.ixigua.com"],
         "parser": XiGua,
     },
     VideoSource.XinPianChang: {
