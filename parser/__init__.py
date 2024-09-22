@@ -12,6 +12,7 @@ from .pipigaoxiao import PiPiGaoXiao
 from .pipixia import PiPiXia
 from .quanmin import QuanMin
 from .quanminkge import QuanMinKGe
+from .redbook import RedBook
 from .sixroom import SixRoom
 from .weibo import WeiBo
 from .weishi import WeiShi
@@ -99,6 +100,13 @@ video_source_info_mapping = {
     VideoSource.ZuiYou: {
         "domain_list": ["share.xiaochuankeji.cn"],
         "parser": ZuiYou,
+    },
+    VideoSource.RedBook: {
+        "domain_list": [
+            "www.xiaohongshu.com",
+            "xhslink.com",
+        ],
+        "parser": RedBook,
     },
 }
 
