@@ -16,7 +16,7 @@ class ZuiYou(BaseParser):
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
         int_video_id = int(video_id)
-        req_url = "https://share.xiaochuankeji.cn/planck/share/post/detail"
+        req_url = "https://share.xiaochuankeji.cn/planck/share/post/detail_h5"
         post_data = {
             "h_av": "5.2.13.011",
             "pid": int_video_id,
@@ -33,7 +33,7 @@ class ZuiYou(BaseParser):
 
         video_info = VideoInfo(
             video_url=data["videos"][video_key]["url"],
-            cover_url=data["videos"][video_key]["cover_urls"][0],
+            cover_url="",
             title=data["content"],
             author=VideoAuthor(
                 uid=str(data["member"]["id"]),
