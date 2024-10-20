@@ -1,3 +1,6 @@
+import json
+import re
+
 import fake_useragent
 import httpx
 
@@ -12,9 +15,9 @@ class KuaiShou(BaseParser):
     async def parse_share_url(self, share_url: str) -> VideoInfo:
         user_agent = fake_useragent.UserAgent(os=["ios"]).random
 
-        # 获取跳转前的信息, 从中获取视频ID, cookie
-        async with httpx.AsyncClient(follow_redirects=False) as client:
-            redirect_response = await client.get(
+        # 获取跳转前的信息, 从中获取跳转url, cookie
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(
                 share_url,
                 headers={
                     "User-Agent": user_agent,
@@ -22,48 +25,29 @@ class KuaiShou(BaseParser):
                 },
             )
 
-        redirect_url = redirect_response.headers.get("Location", "")
-        if not redirect_url:
-            raise Exception("failed to get parse video ID from share URL")
+        re_pattern = r"window.INIT_STATE = (.*?)</script>"
+        re_result = re.search(re_pattern, response.text)
 
-        # redirect_response.cookies 直接用于下面的请求会触发反爬虫验证, 处理成字典没有这个问题
-        format_cookie_map = {}
-        for cookie_id, cookie_val in redirect_response.cookies.items():
-            format_cookie_map[cookie_id] = cookie_val
+        if not re_result or len(re_result.groups()) < 1:
+            raise Exception("failed to parse video JSON info from HTML")
 
-        video_id = redirect_url.split("?")[0].split("/")[-1]
-        post_data = {
-            "fid": "0",
-            "shareResourceType": "PHOTO_OTHER",
-            "shareChannel": "share_copylink",
-            "kpn": "KUAISHOU",
-            "subBiz": "BROWSE_SLIDE_PHOTO",
-            "env": "SHARE_VIEWER_ENV_TX_TRICK",
-            "h5Domain": "m.gifshow.com",
-            "photoId": video_id,
-            "isLongVideo": False,
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://m.gifshow.com/rest/wd/photo/info?kpn=KUAISHOU&captchaToken=",
-                headers={
-                    "Origin": "https://m.gifshow.com",
-                    "Referer": redirect_url,
-                    "Content-Type": "application/json",
-                    "User-Agent": user_agent,
-                },
-                cookies=format_cookie_map,
-                json=post_data,
-            )
-            response.raise_for_status()
+        json_text = re_result.group(1).strip()
+        json_data = json.loads(json_text)
 
-        json_data = response.json()
+        photo_data = {}
+        for json_item in json_data.values():
+            if "result" in json_item and "photo" in json_item:
+                photo_data = json_item
+                break
+
+        if not photo_data:
+            raise Exception("failed to parse photo info from INIT_STATE")
 
         # 判断result状态
-        if (result_code := json_data["result"]) != 1:
+        if (result_code := photo_data["result"]) != 1:
             raise Exception(f"获取作品信息失败:result={result_code}")
 
-        data = json_data["photo"]
+        data = photo_data["photo"]
 
         # 获取视频地址
         video_url = ""
