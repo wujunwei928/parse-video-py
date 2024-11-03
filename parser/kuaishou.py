@@ -16,8 +16,8 @@ class KuaiShou(BaseParser):
         user_agent = fake_useragent.UserAgent(os=["ios"]).random
 
         # 获取跳转前的信息, 从中获取跳转url, cookie
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(
+        async with httpx.AsyncClient(follow_redirects=False) as client:
+            share_response = await client.get(
                 share_url,
                 headers={
                     "User-Agent": user_agent,
@@ -25,7 +25,21 @@ class KuaiShou(BaseParser):
                 },
             )
 
-        re_pattern = r"window.INIT_STATE = (.*?)</script>"
+        location_url = share_response.headers.get("location", "")
+        if len(location_url) <= 0:
+            raise Exception("failed to get location url from share url")
+
+        # /fw/long-video/ 返回结果不一样, 统一替换为 /fw/photo/ 请求
+        location_url = location_url.replace("/fw/long-video/", "/fw/photo/")
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(
+                location_url,
+                headers=share_response.request.headers,
+                cookies=share_response.cookies,
+            )
+
+        re_pattern = r"window.INIT_STATE\s*=\s*(.*?)</script>"
         re_result = re.search(re_pattern, response.text)
 
         if not re_result or len(re_result.groups()) < 1:
