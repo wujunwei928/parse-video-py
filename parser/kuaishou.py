@@ -35,7 +35,7 @@ class KuaiShou(BaseParser):
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(
                 location_url,
-                headers=share_response.request.headers,
+                headers=share_response.headers,
                 cookies=share_response.cookies,
             )
 
