@@ -20,18 +20,18 @@ class PiPiXia(BaseParser):
         return await self.parse_video_id(video_id)
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
-        req_url = (
-            f"https://is.snssdk.com/bds/cell/detail/"
-            f"?cell_type=1&aid=1319&app_name=super&cell_id={video_id}"
-        )
+        req_url = f"https://h5.pipix.com/bds/webapi/item/detail/?item_id={video_id}"
         async with httpx.AsyncClient(follow_redirects=False) as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 
         json_data = response.json()
-        data = json_data["data"]["data"]["item"]
+        if json_data["status_code"] != 0:
+            raise Exception(f"获取作品信息失败:prompt={json_data['prompt']}")
+
+        data = json_data["data"]["item"]
         video_info = VideoInfo(
-            video_url=data["origin_video_download"]["url_list"][0]["url"],
+            video_url=data["video"]["video_download"]["url_list"][0]["url"],
             cover_url=data["cover"]["url_list"][0]["url"],
             title=data["share"]["title"],
             author=VideoAuthor(
