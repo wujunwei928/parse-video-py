@@ -67,6 +67,35 @@
     .mdui-textfield-input, .mdui-btn {
         margin-right: 8px;
     }
+
+    /* 移动端适配 */
+    @media (max-width: 600px) {
+        .mdui-container {
+            margin-top: 4em;
+            margin-bottom: 2em;
+        }
+        .mdui-card {
+            padding: 1em;
+        }
+        .mdui-textfield-input {
+            width: 100%;
+            float: none;
+        }
+        .mdui-btn {
+            width: 100%;
+            margin-top: 0.5em;
+        }
+        .down .mdui-btn {
+            width: 100%;
+            margin-left: 0;
+        }
+        .mdui-textfield.mdui-textfield-floating-label {
+            flex-direction: column;
+        }
+        .mdui-textfield-input, .mdui-btn {
+            margin-right: 0;
+        }
+    }
 </style>
 <main class="mdui-container">
     <div class="mdui-card">
