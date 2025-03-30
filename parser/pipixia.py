@@ -20,7 +20,11 @@ class PiPiXia(BaseParser):
         return await self.parse_video_id(video_id)
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
-        req_url = f"https://h5.pipix.com/bds/webapi/item/detail/?item_id={video_id}"
+        req_url = (
+            "https://api.pipix.com/bds/cell/cell_comment/"
+            + f"?offset=0&cell_type=1&api_version=1&cell_id={video_id}"
+            + "&ac=wifi&channel=huawei_1319_64&aid=1319&app_name=super"
+        )
         async with httpx.AsyncClient(follow_redirects=False) as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
@@ -28,20 +32,20 @@ class PiPiXia(BaseParser):
         json_data = response.json()
         if json_data["status_code"] != 0:
             raise Exception(f"获取作品信息失败:prompt={json_data['prompt']}")
-        data = json_data["data"]["item"]
+        data = json_data["data"]["cell_comments"][0]["comment_info"]["item"]
 
         author_id = data["author"]["id"]
 
         # 获取图集图片地址
         images = []
         # 如果data含有 images，并且 images 是一个列表
-        if data["note"] is not None:
+        if data.get("note") is not None:
             for img in data["note"]["multi_image"]:
                 images.append(img["url_list"][0]["url"])
 
         video_url = ""
-        if data["video"] is not None:
-            video_url = data["video"]["video_download"]["url_list"][0][
+        if data.get("video") is not None:
+            video_url = data["video"]["video_high"]["url_list"][0][
                 "url"
             ]  # 备用视频地址, 可能有水印
             # comments中可能带有不带水印视频, 但是comments可能为空
@@ -58,7 +62,7 @@ class PiPiXia(BaseParser):
         video_info = VideoInfo(
             video_url=video_url,
             cover_url=data["cover"]["url_list"][0]["url"],
-            title=data["share"]["title"],
+            title=data["content"],
             images=images,
             author=VideoAuthor(
                 uid=str(author_id),
