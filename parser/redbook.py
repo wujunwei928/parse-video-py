@@ -32,6 +32,9 @@ class RedBook(BaseParser):
         json_data = yaml.safe_load(find_res.group(1))
 
         note_id = json_data["note"]["currentNoteId"]
+        # 验证返回：小红书的分享链接有有效期，过期后会返回 undefined
+        if note_id == "undefined":
+            raise Exception("parse fail: note id in response is undefined")
         data = json_data["note"]["noteDetailMap"][note_id]["note"]
 
         # 视频地址
