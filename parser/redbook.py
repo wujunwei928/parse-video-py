@@ -47,15 +47,21 @@ class RedBook(BaseParser):
 
         # 获取图集图片地址
         image_list = []
+        image_live_photo_list = []
         if len(video_url) <= 0:
             for img_item in data["imageList"]:
                 image_list.append(img_item["urlDefault"])
+                # 是否有 livephoto 视频地址
+                if img_item.get("livePhoto", False):
+                    for live_photo_item in img_item.get("stream", {}).get("h264", []):
+                        image_live_photo_list.append(live_photo_item["masterUrl"])
 
         video_info = VideoInfo(
             video_url=video_url,
             cover_url=data["imageList"][0]["urlDefault"],
             title=data["title"],
             images=image_list,
+            image_live_photos=image_live_photo_list,
             author=VideoAuthor(
                 uid=data["user"]["userId"],
                 name=data["user"]["nickname"],
