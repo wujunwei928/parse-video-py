@@ -49,17 +49,7 @@ class RedBook(BaseParser):
         image_list = []
         if len(video_url) <= 0:
             for img_item in data["imageList"]:
-                # 个别图片有水印, 替换图片域名
-                image_id = img_item["urlDefault"].split("/")[-1].split("!")[0]
-                # 如果链接中带有 spectrum/ , 替换域名时需要带上
-                spectrum_str = (
-                    "spectrum/" if "spectrum" in img_item["urlDefault"] else ""
-                )
-                new_url = (
-                    f"https://ci.xiaohongshu.com/{spectrum_str}{image_id}"
-                    + "?imageView2/2/w/0/format/jpg"
-                )
-                image_list.append(new_url)
+                image_list.append(img_item["urlDefault"])
 
         video_info = VideoInfo(
             video_url=video_url,
