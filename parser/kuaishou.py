@@ -4,7 +4,7 @@ import re
 import fake_useragent
 import httpx
 
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
 class KuaiShou(BaseParser):
@@ -75,7 +75,7 @@ class KuaiShou(BaseParser):
         images = []
         if len(atlas_cdn_list) > 0 and len(atlas_list) > 0:
             for atlas in atlas_list:
-                images.append(f"https://{atlas_cdn_list[0]}/{atlas}")
+                images.append(ImgInfo(url=f"https://{atlas_cdn_list[0]}/{atlas}"))
 
         video_info = VideoInfo(
             video_url=video_url,

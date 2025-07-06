@@ -4,7 +4,7 @@ import fake_useragent
 import httpx
 import yaml
 
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
 class RedBook(BaseParser):
@@ -46,22 +46,33 @@ class RedBook(BaseParser):
             video_url = h264_data[0].get("masterUrl", "")
 
         # 获取图集图片地址
-        image_list = []
-        image_live_photo_list = []
+        images = []
         if len(video_url) <= 0:
             for img_item in data["imageList"]:
-                image_list.append(img_item["urlDefault"])
+                # 个别图片有水印, 替换图片域名
+                image_id = img_item["urlDefault"].split("/")[-1].split("!")[0]
+                # 如果链接中带有 spectrum/ , 替换域名时需要带上
+                spectrum_str = (
+                    "spectrum/" if "spectrum" in img_item["urlDefault"] else ""
+                )
+                new_url = (
+                    "https://ci.xiaohongshu.com/notes_pre_post/"
+                    + f"{spectrum_str}{image_id}"
+                    + "?imageView2/format/jpg"
+                )
+                img_info = ImgInfo(url=new_url)
                 # 是否有 livephoto 视频地址
-                if img_item.get("livePhoto", False):
-                    for live_photo_item in img_item.get("stream", {}).get("h264", []):
-                        image_live_photo_list.append(live_photo_item["masterUrl"])
+                if img_item.get("livePhoto", False) and (
+                    h264_data := img_item.get("stream", {}).get("h264", [])
+                ):
+                    img_info.live_photo_url = h264_data[0]["masterUrl"]
+                images.append(img_info)
 
         video_info = VideoInfo(
             video_url=video_url,
             cover_url=data["imageList"][0]["urlDefault"],
             title=data["title"],
-            images=image_list,
-            image_live_photos=image_live_photo_list,
+            images=images,
             author=VideoAuthor(
                 uid=data["user"]["userId"],
                 name=data["user"]["nickname"],

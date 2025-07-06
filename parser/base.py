@@ -50,6 +50,19 @@ class VideoAuthor:
 
 
 @dataclasses.dataclass
+class ImgInfo:
+    """
+    图集图片信息
+    """
+
+    # 图片url
+    url: str = ""
+
+    # livephoto 视频地址
+    live_photo_url: str = ""
+
+
+@dataclasses.dataclass
 class VideoInfo:
     """
     视频信息
@@ -68,10 +81,7 @@ class VideoInfo:
     music_url: str = ""
 
     # 图集图片地址列表
-    images: List[str] = dataclasses.field(default_factory=list)
-
-    # 图集图片 livephoto 视频地址列表
-    image_live_photos: List[str] = dataclasses.field(default_factory=list)
+    images: List[ImgInfo] = dataclasses.field(default_factory=list)
 
     # 视频作者信息
     author: VideoAuthor = dataclasses.field(default_factory=VideoAuthor)

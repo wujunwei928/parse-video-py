@@ -1,6 +1,6 @@
 import httpx
 
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
 class PiPiXia(BaseParser):
@@ -41,7 +41,7 @@ class PiPiXia(BaseParser):
         # 如果data含有 images，并且 images 是一个列表
         if data.get("note") is not None:
             for img in data["note"]["multi_image"]:
-                images.append(img["url_list"][0]["url"])
+                images.append(ImgInfo(url=img["url_list"][0]["url"]))
 
         video_url = ""
         if data.get("video") is not None:

@@ -121,8 +121,9 @@ curl 'http://127.0.0.1:8000/video/share/url/parse?url=视频分享链接' | jq
 | video_url | 视频无水印链接 |
 | music_url | 视频音乐链接 |
 | cover_url | 视频封面 |
-| images | 图集图片地址列表 |
-| image_live_photos | 图集图片 livephoto 视频地址列表 |
+| images | 图集图片列表 |
+| images.[index].url | 图集图片地址 |
+| images.[index].live_photo_url | 图集图片 livephoto 视频地址 |
 > 字段除了视频地址, 其他字段可能为空
 
 # 自己写方法调用

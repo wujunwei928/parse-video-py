@@ -3,7 +3,7 @@ import re
 
 import httpx
 
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
 class DouYin(BaseParser):
@@ -19,8 +19,15 @@ class DouYin(BaseParser):
         else:
             # 支持app分享链接 https://v.douyin.com/xxxxxx
             async with httpx.AsyncClient(follow_redirects=False) as client:
-                share_response = await client.get(share_url, headers=self.get_default_headers())
-                video_id = share_response.headers.get("location").split("?")[0].strip("/").split("/")[-1]
+                share_response = await client.get(
+                    share_url, headers=self.get_default_headers()
+                )
+                video_id = (
+                    share_response.headers.get("location")
+                    .split("?")[0]
+                    .strip("/")
+                    .split("/")[-1]
+                )
                 share_url = self._get_request_url_by_video_id(video_id)
 
         async with httpx.AsyncClient(follow_redirects=True) as client:
@@ -40,13 +47,17 @@ class DouYin(BaseParser):
 
         # 获取链接返回json数据进行视频和图集判断,如果指定类型不存在，抛出异常
         # 返回的json数据中，视频字典类型为 video_(id)/page
-        VIDEO_ID_PAGE_KEY  = "video_(id)/page"
+        VIDEO_ID_PAGE_KEY = "video_(id)/page"
         # 返回的json数据中，视频字典类型为 note_(id)/page
         NOTE_ID_PAGE_KEY = "note_(id)/page"
-        if VIDEO_ID_PAGE_KEY  in json_data["loaderData"]:
-            original_video_info = json_data["loaderData"][VIDEO_ID_PAGE_KEY]["videoInfoRes"]
+        if VIDEO_ID_PAGE_KEY in json_data["loaderData"]:
+            original_video_info = json_data["loaderData"][VIDEO_ID_PAGE_KEY][
+                "videoInfoRes"
+            ]
         elif NOTE_ID_PAGE_KEY in json_data["loaderData"]:
-            original_video_info = json_data["loaderData"][NOTE_ID_PAGE_KEY]["videoInfoRes"]
+            original_video_info = json_data["loaderData"][NOTE_ID_PAGE_KEY][
+                "videoInfoRes"
+            ]
         else:
             raise Exception("failed to parse Videos or Photo Gallery info from json")
 
@@ -71,7 +82,7 @@ class DouYin(BaseParser):
                     and len(img["url_list"]) > 0
                     and len(img["url_list"][0]) > 0
                 ):
-                    images.append(img["url_list"][0])
+                    images.append(ImgInfo(url=img["url_list"][0]))
 
         # 获取视频播放地址
         video_url = data["video"]["play_addr"]["url_list"][0].replace("playwm", "play")
