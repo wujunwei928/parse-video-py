@@ -75,6 +75,12 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### 如需开启basic auth认证，请自行设置环境变量，不设置不开启，默认不开启
+```shell
+export PARSE_VIDEO_USERNAME=username
+export PARSE_VIDEO_PASSWORD=password
+```
+
 ### 运行app
 ```shell
 uvicorn main:app --reload
@@ -89,6 +95,11 @@ docker pull wujunwei928/parse-video-py
 ### 运行 docker 容器, 端口 8000
 ```bash
 docker run -d -p 8000:8000 wujunwei928/parse-video-py
+```
+
+### 运行docker容器，开启basic auth认证
+```bash
+docker run -d -p 8000:8000 -e PARSE_VIDEO_USERNAME=username -e PARSE_VIDEO_PASSWORD=password wujunwei928/parse-video-py
 ```
 
 # 查看前端页面
