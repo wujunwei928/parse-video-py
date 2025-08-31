@@ -8,8 +8,13 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
+from fastapi_mcp import FastApiMCP
 
 app = FastAPI()
+
+mcp = FastApiMCP(app)
+
+mcp.mount_http()
 
 templates = Jinja2Templates(directory="templates")
 
@@ -84,6 +89,8 @@ async def video_id_parse(source: VideoSource, video_id: str):
             "msg": str(err),
         }
 
+
+mcp.setup_server()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
