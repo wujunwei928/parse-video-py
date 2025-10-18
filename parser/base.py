@@ -30,6 +30,7 @@ class VideoSource(Enum):
     SixRoom = "sixroom"  # 六间房
     XinPianChang = "xinpianchang"  # 新片场
     HaoKan = "haokan"  # 好看视频
+    BiliBili = "bilibili"  # 哔哩哔哩
     RedBook = "redbook"  # 小红书
 
 

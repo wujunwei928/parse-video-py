@@ -110,6 +110,13 @@ class VideoInfo:
     author: VideoAuthor = VideoAuthor()  # Author info
 ```
 
+## MCP Support
+
+The project supports [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) for integration with AI tools:
+- MCP endpoint: `http://localhost:8000/mcp`
+- Uses StreamableHttp method for AI tool integration
+- Enabled via FastAPI-MCP integration in `main.py`
+
 ## Important Notes
 
 - All parsers must handle both share URLs and video IDs
@@ -117,3 +124,18 @@ class VideoInfo:
 - Video URLs should be direct, watermark-free when possible
 - Error handling should return meaningful messages for unsupported platforms
 - The system supports both video and image gallery parsing
+- Bilibili parser supports Cookie configuration for higher quality videos (commented out by default)
+- Use app share links when possible, desktop web versions may not be fully tested
+
+## Direct Parser Usage
+
+```python
+import asyncio
+from parser import parse_video_share_url, parse_video_id, VideoSource
+
+# Parse from share URL
+video_info = asyncio.run(parse_video_share_url("share_url"))
+
+# Parse from video ID
+video_info = asyncio.run(parse_video_id(VideoSource.DouYin, "video_id"))
+```

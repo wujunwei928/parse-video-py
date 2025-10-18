@@ -1,5 +1,6 @@
 from .acfun import AcFun
 from .base import VideoInfo, VideoSource
+from .bilibili import BiliBili
 from .doupai import DouPai
 from .douyin import DouYin
 from .haokan import HaoKan
@@ -40,6 +41,14 @@ video_source_info_mapping = {
             "haokan.hao123.com",
         ],
         "parser": HaoKan,
+    },
+    VideoSource.BiliBili: {
+        "domain_list": [
+            "www.bilibili.com",
+            "b23.tv",
+            "m.bilibili.com",
+        ],
+        "parser": BiliBili,
     },
     VideoSource.HuYa: {
         "domain_list": ["v.huya.com"],
