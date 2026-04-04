@@ -66,7 +66,14 @@ async def read_item(request: Request):
 @app.get("/video/share/url/parse", dependencies=get_auth_dependency())
 async def share_url_parse(url: str):
     url_reg = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%]*[/]*")
-    video_share_url = url_reg.search(url).group()
+    matched_url = url_reg.search(url)
+    if matched_url is None:
+        return {
+            "code": 400,
+            "msg": "未检测到有效的分享链接",
+        }
+
+    video_share_url = matched_url.group()
 
     try:
         video_info = await parse_video_share_url(video_share_url)
