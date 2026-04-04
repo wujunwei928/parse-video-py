@@ -18,6 +18,8 @@ mcp.mount_http()
 
 templates = Jinja2Templates(directory="templates")
 
+URL_REG = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%]*[/]*")
+
 
 def get_auth_dependency() -> list[Depends]:
     """
@@ -65,8 +67,7 @@ async def read_item(request: Request):
 
 @app.get("/video/share/url/parse", dependencies=get_auth_dependency())
 async def share_url_parse(url: str):
-    url_reg = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%]*[/]*")
-    matched_url = url_reg.search(url)
+    matched_url = URL_REG.search(url)
     if matched_url is None:
         return {
             "code": 400,
