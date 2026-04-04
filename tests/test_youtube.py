@@ -69,6 +69,19 @@ class TestYouTubePageDataParse:
         result = parser._extract_player_response(html)
         assert result["videoDetails"]["title"] == "demo"
 
+    def test_is_playable_for_login_required(self):
+        parser = YouTube()
+        response = {
+            "playabilityStatus": {
+                "status": "LOGIN_REQUIRED",
+                "reason": "Sign in to confirm you’re not a bot",
+            }
+        }
+        assert parser._is_playable(response) is False
+        status, reason = parser._get_playability_error(response)
+        assert status == "LOGIN_REQUIRED"
+        assert "not a bot" in reason
+
 
 class TestYouTubeVideoSource:
     def test_youtube_video_source_exists(self):

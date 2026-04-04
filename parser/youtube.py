@@ -14,6 +14,9 @@ class YouTube(BaseParser):
     """
 
     WATCH_URL = "https://www.youtube.com/watch?v={video_id}&bpctr=9999999999&has_verified=1"
+    INNERTUBE_PLAYER_API = "https://www.youtube.com/youtubei/v1/player"
+    # 与开源提取器常见实现一致，使用公开 WEB innertube key 做 player 查询
+    INNERTUBE_API_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
         video_id = self._extract_video_id(share_url)
@@ -60,14 +63,71 @@ class YouTube(BaseParser):
             resp.raise_for_status()
 
         player_response = self._extract_player_response(resp.text)
+        if self._is_playable(player_response):
+            return player_response
 
+        # 部分视频会触发 "LOGIN_REQUIRED Sign in to confirm you’re not a bot"
+        # 参考 yt-dlp/youtube-dl 思路：改用多个 innertube 客户端上下文重试
+        innertube_response = await self._fetch_player_response_by_innertube(video_id)
+        if self._is_playable(innertube_response):
+            return innertube_response
+
+        status, reason = self._get_playability_error(innertube_response or player_response)
+        raise ValueError(f"YouTube 视频不可播放: {status} {reason}".strip())
+
+    async def _fetch_player_response_by_innertube(self, video_id: str) -> dict:
+        clients = [
+            {"clientName": "ANDROID", "clientVersion": "19.44.38"},
+            {"clientName": "IOS", "clientVersion": "19.45.4"},
+            {
+                "clientName": "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+                "clientVersion": "2.0",
+                "clientScreen": "EMBED",
+            },
+            {"clientName": "WEB", "clientVersion": "2.20241201.01.00"},
+        ]
+
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Content-Type": "application/json",
+        }
+        url = f"{self.INNERTUBE_PLAYER_API}?key={self.INNERTUBE_API_KEY}&prettyPrint=false"
+
+        last_response = {}
+        async with httpx.AsyncClient(timeout=20) as client:
+            for client_info in clients:
+                payload = {
+                    "videoId": video_id,
+                    "contentCheckOk": True,
+                    "racyCheckOk": True,
+                    "context": {
+                        "client": client_info,
+                        "thirdParty": {"embedUrl": f"https://www.youtube.com/watch?v={video_id}"},
+                    },
+                }
+                resp = await client.post(url, headers=headers, json=payload)
+                if resp.status_code != 200:
+                    continue
+
+                item = resp.json()
+                last_response = item
+                if self._is_playable(item):
+                    return item
+
+        return last_response
+
+    def _is_playable(self, player_response: dict) -> bool:
+        status = player_response.get("playabilityStatus", {}).get("status", "")
+        return status == "OK" and bool(player_response.get("streamingData"))
+
+    def _get_playability_error(self, player_response: dict) -> tuple[str, str]:
         playability_status = player_response.get("playabilityStatus", {})
-        status = playability_status.get("status", "")
-        if status and status != "OK":
-            reason = playability_status.get("reason", "")
-            raise ValueError(f"YouTube 视频不可播放: {status} {reason}".strip())
-
-        return player_response
+        return playability_status.get("status", "UNKNOWN"), playability_status.get(
+            "reason", ""
+        )
 
     def _extract_player_response(self, html: str) -> dict:
         patterns = [
