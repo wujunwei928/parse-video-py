@@ -20,6 +20,7 @@ from .weibo import WeiBo
 from .weishi import WeiShi
 from .xigua import XiGua
 from .xinpianchang import XinPianChang
+from .youtube import YouTube
 from .zuiyou import ZuiYou
 
 # 视频来源与解析器的映射关系
@@ -126,6 +127,15 @@ video_source_info_mapping = {
             "mobile.twitter.com",
         ],
         "parser": Twitter,
+    },
+    VideoSource.YouTube: {
+        "domain_list": [
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+            "youtu.be",
+        ],
+        "parser": YouTube,
     },
 }
 

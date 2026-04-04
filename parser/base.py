@@ -33,6 +33,7 @@ class VideoSource(Enum):
     BiliBili = "bilibili"  # 哔哩哔哩
     RedBook = "redbook"  # 小红书
     Twitter = "twitter"  # Twitter/X
+    YouTube = "youtube"  # YouTube
 
 
 @dataclasses.dataclass
