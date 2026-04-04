@@ -48,6 +48,27 @@ class TestYouTubeFormatSelection:
         best_url = parser._pick_best_video_url(formats)
         assert best_url == "https://example.com/720.mp4"
 
+    def test_extract_format_url_from_signature_cipher(self):
+        parser = YouTube()
+        fmt = {
+            "signatureCipher": (
+                "url=https%3A%2F%2Fexample.com%2Fv.mp4%3Fexpire%3D123&sp=sig&s=abcd"
+            )
+        }
+        url = parser._extract_format_url(fmt)
+        assert url == "https://example.com/v.mp4?expire=123"
+
+
+class TestYouTubePageDataParse:
+    def test_extract_player_response(self):
+        parser = YouTube()
+        html = (
+            '<script>var ytInitialPlayerResponse = {"videoDetails":{"title":"demo"}};'
+            "</script>"
+        )
+        result = parser._extract_player_response(html)
+        assert result["videoDetails"]["title"] == "demo"
+
 
 class TestYouTubeVideoSource:
     def test_youtube_video_source_exists(self):

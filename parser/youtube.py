@@ -1,6 +1,8 @@
-import asyncio
+import json
 import re
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
+
+import httpx
 
 from .base import BaseParser, VideoAuthor, VideoInfo
 
@@ -8,103 +10,141 @@ from .base import BaseParser, VideoAuthor, VideoInfo
 class YouTube(BaseParser):
     """
     YouTube 解析器
-    基于 yt-dlp 抽取媒体信息与可下载直链
+    参考 yt-dlp / youtube-dl 的页面 JSON 提取思路实现
     """
+
+    WATCH_URL = "https://www.youtube.com/watch?v={video_id}&bpctr=9999999999&has_verified=1"
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
         video_id = self._extract_video_id(share_url)
         return await self.parse_video_id(video_id)
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
-        page_url = f"https://www.youtube.com/watch?v={video_id}"
-        info = await asyncio.to_thread(self._extract_info, page_url)
+        player_response = await self._fetch_player_response(video_id)
 
-        formats = info.get("formats", [])
-        video_url = self._pick_best_video_url(formats) or info.get("url", "")
+        video_details = player_response.get("videoDetails", {})
+        streaming_data = player_response.get("streamingData", {})
+        formats = (streaming_data.get("formats") or []) + (
+            streaming_data.get("adaptiveFormats") or []
+        )
+
+        video_url = self._pick_best_video_url(formats)
         if not video_url:
             raise ValueError("无法获取 YouTube 视频直链")
 
-        thumbnails = info.get("thumbnails", [])
-        cover_url = ""
-        if thumbnails:
-            cover_url = thumbnails[-1].get("url", "")
-        if not cover_url:
-            cover_url = info.get("thumbnail", "")
-
-        author = VideoAuthor(
-            uid=info.get("channel_id", "") or info.get("uploader_id", ""),
-            name=info.get("channel", "") or info.get("uploader", ""),
-            avatar="",
-        )
+        cover_url = self._pick_cover_url(video_details)
 
         return VideoInfo(
             video_url=video_url,
             cover_url=cover_url,
-            title=info.get("title", ""),
-            author=author,
+            title=video_details.get("title", ""),
+            author=VideoAuthor(
+                uid=video_details.get("channelId", ""),
+                name=video_details.get("author", ""),
+                avatar="",
+            ),
         )
 
-    def _extract_info(self, page_url: str) -> dict:
-        try:
-            from yt_dlp import YoutubeDL
-        except ImportError as err:
-            raise ImportError(
-                "缺少依赖 yt-dlp，请先安装后再使用 YouTube 解析功能"
-            ) from err
-
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "skip_download": True,
-            "noplaylist": True,
+    async def _fetch_player_response(self, video_id: str) -> dict:
+        url = self.WATCH_URL.format(video_id=video_id)
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
         }
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(page_url, download=False)
 
-        if not info:
-            raise ValueError("无法解析 YouTube 视频信息")
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
 
-        if info.get("entries"):
-            entries = [item for item in info["entries"] if item]
-            if not entries:
-                raise ValueError("解析到空视频列表")
-            info = entries[0]
+        player_response = self._extract_player_response(resp.text)
 
-        return info
+        playability_status = player_response.get("playabilityStatus", {})
+        status = playability_status.get("status", "")
+        if status and status != "OK":
+            reason = playability_status.get("reason", "")
+            raise ValueError(f"YouTube 视频不可播放: {status} {reason}".strip())
+
+        return player_response
+
+    def _extract_player_response(self, html: str) -> dict:
+        patterns = [
+            r"ytInitialPlayerResponse\s*=\s*(\{.+?\});",
+            r"ytInitialPlayerResponse\"\s*:\s*(\{.+?\})\s*,\s*\"ytInitialData\"",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, html, flags=re.DOTALL)
+            if not match:
+                continue
+
+            content = match.group(1)
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                continue
+
+        raise ValueError("无法从页面中提取 YouTube 播放信息")
+
+    def _pick_cover_url(self, video_details: dict) -> str:
+        thumbnails = video_details.get("thumbnail", {}).get("thumbnails", [])
+        if not thumbnails:
+            return ""
+        return thumbnails[-1].get("url", "")
 
     def _pick_best_video_url(self, formats: list[dict]) -> str:
         if not formats:
             return ""
 
-        mp4_with_audio = []
+        progressive_mp4 = []
         mp4_video_only = []
         fallback = []
 
         for fmt in formats:
-            url = fmt.get("url")
-            if not url:
+            parsed_url = self._extract_format_url(fmt)
+            if not parsed_url:
                 continue
 
-            vcodec = fmt.get("vcodec", "")
-            acodec = fmt.get("acodec", "")
-            ext = fmt.get("ext", "")
+            mime_type = fmt.get("mimeType", "")
+            has_video = "video/" in mime_type or fmt.get("vcodec", "") != "none"
+            if not has_video:
+                continue
+
+            has_audio = "audio/" in mime_type or fmt.get("acodec", "") not in ("", "none")
+            is_mp4 = "video/mp4" in mime_type or fmt.get("ext", "") == "mp4"
             height = fmt.get("height") or 0
-            tbr = fmt.get("tbr") or 0
-            score = (height, tbr)
+            bitrate = fmt.get("bitrate") or fmt.get("averageBitrate") or 0
+            score = (height, bitrate)
 
-            if vcodec != "none" and acodec != "none" and ext == "mp4":
-                mp4_with_audio.append((score, url))
-            elif vcodec != "none" and ext == "mp4":
-                mp4_video_only.append((score, url))
-            elif vcodec != "none":
-                fallback.append((score, url))
+            if is_mp4 and has_audio:
+                progressive_mp4.append((score, parsed_url))
+            elif is_mp4:
+                mp4_video_only.append((score, parsed_url))
+            else:
+                fallback.append((score, parsed_url))
 
-        if mp4_with_audio:
-            return max(mp4_with_audio, key=lambda item: item[0])[1]
+        if progressive_mp4:
+            return max(progressive_mp4, key=lambda item: item[0])[1]
         if mp4_video_only:
             return max(mp4_video_only, key=lambda item: item[0])[1]
         if fallback:
             return max(fallback, key=lambda item: item[0])[1]
+        return ""
+
+    def _extract_format_url(self, fmt: dict) -> str:
+        if fmt.get("url"):
+            return fmt["url"]
+
+        cipher = fmt.get("signatureCipher") or fmt.get("cipher")
+        if not cipher:
+            return ""
+
+        params = parse_qs(cipher)
+        url = params.get("url", [""])[0]
+        if url:
+            return unquote(url)
         return ""
 
     def _extract_video_id(self, share_url: str) -> str:
