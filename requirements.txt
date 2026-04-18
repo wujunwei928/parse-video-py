@@ -1,3 +1,6 @@
+# 注意：此文件为遗留文件，依赖管理已迁移到 pyproject.toml
+# 新安装请使用：uv pip install -e ".[all]"
+
 aiofiles==23.2.1
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15

@@ -4,7 +4,7 @@ import re
 import fake_useragent
 import httpx
 
-from utils import get_val_from_url_by_query_key
+from parse_video_py.utils import get_val_from_url_by_query_key
 
 from .base import BaseParser, VideoAuthor, VideoInfo
 

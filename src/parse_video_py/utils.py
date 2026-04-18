@@ -1,4 +1,13 @@
+import re
 from urllib.parse import parse_qs, urlparse
+
+URL_REG = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%]*[/]*")
+
+
+def extract_url(text: str) -> str | None:
+    """从文本中提取第一个匹配的 URL"""
+    match = URL_REG.search(text)
+    return match.group() if match else None
 
 
 def get_val_from_url_by_query_key(url: str, query_key: str) -> str:

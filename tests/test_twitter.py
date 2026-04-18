@@ -1,7 +1,7 @@
-from parser.base import VideoSource
-from parser.twitter import Twitter
-
 import pytest
+
+from parse_video_py.parser.base import VideoSource
+from parse_video_py.parser.twitter import Twitter
 
 
 class TestTwitterToken:
