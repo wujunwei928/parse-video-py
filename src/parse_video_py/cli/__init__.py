@@ -9,6 +9,11 @@ app = typer.Typer(
 )
 
 
+@app.callback(context_settings={"help_option_names": ["-h", "--help"]})
+def main():
+    pass
+
+
 @app.command()
 def version():
     """显示版本信息"""
