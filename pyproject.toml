@@ -1,6 +1,6 @@
 [project]
 name = "parse-video-py"
-version = "0.0.2"
+version = "0.0.3"
 description = "视频解析服务，支持 20+ 平台去水印解析"
 requires-python = ">=3.10"
 license = "MIT"

@@ -2,6 +2,32 @@
 
 所有重要变更均会记录在此文件中。
 
+## [v0.0.3] - 2026-04-19
+
+### 新增功能
+
+- **新增 CLI 命令行工具**：支持 `version`/`parse`/`serve` 三个子命令，可通过 `parse-video-py` 入口直接使用
+- **新增 CLI `-h` 简写**：所有命令支持 `-h` 作为 `--help` 的简写
+- **新增 pyproject.toml**：使用 hatchling 构建，支持 `[web]`/`[cli]`/`[dev]` 可选依赖安装
+- **新增包公开 API**：支持 `from parse_video_py import VideoSource, parse_video_share_url` 直接调用
+
+### 架构重构
+
+- **迁移到 src 标准布局**：`parser/`、`utils/`、`templates/` 统一迁移到 `src/parse_video_py/` 下
+- **uv 包管理**：从 venv + requirements.txt 迁移到 uv + pyproject.toml，支持 `uv pip install -e ".[all]"`
+- **Web 服务拆分**：从 `main.py` 提取到 `src/parse_video_py/web.py`，`main.py` 改为薄入口
+- **URL 工具统一**：`URL_REG` 正则和 `extract_url` 提取到 `utils.py`，消除 web/cli 模块间的重复定义
+
+### 优化改进
+
+- **Web 序列化**：使用 `dataclasses.asdict()` 替代 `__dict__`，正确处理嵌套 dataclass 序列化
+- **Auth 依赖缓存**：Basic Auth 依赖在模块加载时构建一次，避免每个路由重复调用
+- **批量解析并发限制**：CLI 批量解析添加 `Semaphore(10)` 防止无界并发
+- **Dockerfile 更新**：使用 uv 安装依赖，适配 src 布局
+- **CI 更新**：GitHub Actions 改用 `astral-sh/setup-uv`
+
+---
+
 ## [v0.0.2] - 2026-04-18
 
 ### 新增功能
