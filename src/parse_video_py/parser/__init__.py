@@ -1,6 +1,7 @@
 from .acfun import AcFun
 from .base import VideoInfo, VideoSource
 from .bilibili import BiliBili
+from .cctv import CCTV
 from .doupai import DouPai
 from .douyin import DouYin
 from .haokan import HaoKan
@@ -16,6 +17,7 @@ from .quanmin import QuanMin
 from .quanminkge import QuanMinKGe
 from .redbook import RedBook
 from .sixroom import SixRoom
+from .sohu import Sohu
 from .twitter import Twitter
 from .weibo import WeiBo
 from .weishi import WeiShi
@@ -28,6 +30,10 @@ video_source_info_mapping = {
     VideoSource.AcFun: {
         "domain_list": ["www.acfun.cn"],
         "parser": AcFun,
+    },
+    VideoSource.CCTV: {
+        "domain_list": ["tv.cctv.cn", "tv.cctv.com"],
+        "parser": CCTV,
     },
     VideoSource.DouPai: {
         "domain_list": ["doupai.cc"],
@@ -91,6 +97,10 @@ video_source_info_mapping = {
     VideoSource.SixRoom: {
         "domain_list": ["6.cn"],
         "parser": SixRoom,
+    },
+    VideoSource.Sohu: {
+        "domain_list": ["tv.sohu.com", "my.tv.sohu.com"],
+        "parser": Sohu,
     },
     VideoSource.WeiBo: {
         "domain_list": ["weibo.com"],
