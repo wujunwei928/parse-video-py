@@ -551,7 +551,7 @@ class TestSohuParseVideoId:
 
         import httpx
 
-        monkeypatch.setattr(httpx.AsyncClient, "get", mock_sohu_response)
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
 
     @pytest.mark.asyncio
     async def test_parse_video_id_success(self, mock_sohu_response):
@@ -1059,8 +1059,6 @@ from .sohu import Sohu
 创建 `tests/test_new_parsers_routing.py`：
 
 ```python
-import pytest
-
 from parse_video_py.parser import video_source_info_mapping
 from parse_video_py.parser.base import VideoSource
 from parse_video_py.parser.cctv import CCTV
@@ -1123,7 +1121,7 @@ Expected: 全部 PASS（包括新增和已有的测试）
 - [ ] **Step 3: 提交**
 
 ```bash
-git add src/parse_video_py/parser/__init__.py
+git add src/parse_video_py/parser/__init__.py tests/test_new_parsers_routing.py
 git commit -m "feat: 注册 QQVideo/Sohu/CCTV 解析器到映射表"
 ```
 
@@ -1217,8 +1215,8 @@ git commit -m "docs: 更新 README 支持平台列表，新增腾讯/搜狐/CCTV
 
 - [ ] **Step 2: 验证无 Go 项目残留引用**
 
-Run: `grep -E 'parser/vars\\.go|go test|resty|gjson|\\.go:[0-9]|cmd/handlers\\.go|VideoParseInfo|VideoShareUrlDomain' .claude/skills/analyze-video-url/SKILL.md || echo "PASS: 无 Go 残留引用"`
-Expected: `PASS: 无 Go 残留引用`
+Run: `cd /code/parse-video-py && ! grep -qE 'parser/vars\\.go|go test|go build|resty|gjson|net/http|\\.go:[0-9]|cmd/handlers\\.go|VideoParseInfo|VideoShareUrlDomain' .claude/skills/analyze-video-url/SKILL.md && echo "PASS: 无 Go 残留引用"`
+Expected: `PASS: 无 Go 残留引用`（grep 命中则 `!` 取反使退出码非零，命令失败）
 
 - [ ] **Step 3: 提交**
 
