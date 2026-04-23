@@ -11,6 +11,7 @@ from .lvzhou import LvZhou
 from .meipai import MeiPai
 from .pipigaoxiao import PiPiGaoXiao
 from .pipixia import PiPiXia
+from .qqvideo import QQVideo
 from .quanmin import QuanMin
 from .quanminkge import QuanMinKGe
 from .redbook import RedBook
@@ -126,6 +127,10 @@ video_source_info_mapping = {
             "mobile.twitter.com",
         ],
         "parser": Twitter,
+    },
+    VideoSource.QQVideo: {
+        "domain_list": ["v.qq.com", "m.v.qq.com"],
+        "parser": QQVideo,
     },
 }
 
