@@ -1,7 +1,7 @@
 import re
 from urllib.parse import parse_qs, urlparse
 
-URL_REG = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%]*[/]*")
+URL_REG = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%.]*[/]*")
 
 
 def extract_url(text: str) -> str | None:
