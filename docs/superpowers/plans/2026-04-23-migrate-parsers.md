@@ -40,6 +40,85 @@ git commit -m "feat: 新增 QQVideo/Sohu/CCTV VideoSource 枚举值"
 
 ---
 
+## Task 1.5: 修复 URL 提取正则（解决搜狐 base64 URL 截断）
+
+> **Codex Review Finding #1 (Blocking):** `utils.py` 的 `URL_REG` 在匹配
+> `https://tv.sohu.com/v/...==.html` 时，末尾 `[\w=&:\-\+\%]*` 不含 `.`，
+> 导致 `.html` 被截断，后续 `_sohu_base64_vid_re` 无法匹配。
+
+**Files:**
+- Modify: `src/parse_video_py/utils.py:4`
+- Modify: `tests/test_utils.py`（新增，如不存在则创建）
+
+- [ ] **Step 1: 修改 URL_REG 正则**
+
+将 `src/parse_video_py/utils.py:4` 的正则：
+```python
+URL_REG = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%]*[/]*")
+```
+改为（在末尾字符类中增加 `.`）：
+```python
+URL_REG = re.compile(
+    r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%.]*[/]*"
+)
+```
+
+- [ ] **Step 2: 编写回归测试**
+
+创建 `tests/test_utils.py`：
+
+```python
+from parse_video_py.utils import extract_url
+
+
+class TestExtractUrl:
+    """测试 URL 提取工具函数"""
+
+    def test_sohu_base64_url(self):
+        """搜狐 base64 编码 URL 不被截断"""
+        url = (
+            "https://tv.sohu.com/v/"
+            "dXMvMzM1OTQyMjE0LzM5OTU3MTYxMi5zaHRtbA==.html"
+        )
+        assert extract_url(url) == url
+
+    def test_sohu_base64_in_text(self):
+        """从混合文本中提取搜狐 base64 URL"""
+        text = (
+            "看看这个 https://tv.sohu.com/v/"
+            "dXMvMzM1OTQyMjE0LzM5OTU3MTYxMi5zaHRtbA==.html 好看"
+        )
+        expected = (
+            "https://tv.sohu.com/v/"
+            "dXMvMzM1OTQyMjE0LzM5OTU3MTYxMi5zaHRtbA==.html"
+        )
+        assert extract_url(text) == expected
+
+    def test_regular_url(self):
+        """常规 URL 不受影响"""
+        url = "https://v.douyin.com/abc123"
+        assert extract_url(url) == url
+
+    def test_url_with_query_params(self):
+        """带查询参数的 URL"""
+        url = "https://v.qq.com/x/page/l3502vppd13.html?ptag=v_qq_com"
+        assert extract_url(url) == url
+```
+
+- [ ] **Step 3: 运行测试验证通过**
+
+Run: `cd /code/parse-video-py && source .venv/bin/activate && pytest tests/test_utils.py -v`
+Expected: 全部 PASS
+
+- [ ] **Step 4: 提交**
+
+```bash
+git add src/parse_video_py/utils.py tests/test_utils.py
+git commit -m "fix: URL_REG 正则增加 '.' 匹配，修复搜狐 base64 URL 截断"
+```
+
+---
+
 ## Task 2: 腾讯视频解析器 — 测试
 
 **Files:**
@@ -121,6 +200,112 @@ class TestQQVideoVideoSource:
 
     def test_qqvideo_source_exists(self):
         assert VideoSource.QQVideo.value == "qqvideo"
+
+
+class TestQQVideoParseVideoId:
+    """测试 parse_video_id 响应解析（mock httpx）"""
+
+    @pytest.fixture
+    def mock_qq_response(self, monkeypatch):
+        """mock httpx.AsyncClient.get 返回腾讯视频 API 响应"""
+        import json
+
+        from parse_video_py.parser.qqvideo import QQVideo
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                @property
+                def text(self):
+                    return (
+                        'QZOutputJson='
+                        + json.dumps(
+                            {
+                                "em": 0,
+                                "vl": {
+                                    "vi": [
+                                        {
+                                            "vid": "l3502vppd13",
+                                            "ti": "测试视频标题",
+                                            "fn": "l3502vppd13.mp4",
+                                            "fvkey": "test_vkey_123",
+                                            "ul": {
+                                                "ui": [
+                                                    {
+                                                        "url": (
+                                                            "https://vgg"
+                                                            ".video.qq.com/"
+                                                        )
+                                                    }
+                                                ]
+                                            },
+                                        }
+                                    ]
+                                },
+                            }
+                        )
+                        + ";"
+                    )
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_success(self, mock_qq_response):
+        """测试成功解析腾讯视频响应"""
+        qv = QQVideo()
+        result = await qv.parse_video_id("l3502vppd13")
+        assert result.video_url == (
+            "https://vgg.video.qq.com/l3502vppd13.mp4"
+            "?vkey=test_vkey_123"
+        )
+        assert result.title == "测试视频标题"
+        assert "l3502vppd13" in result.cover_url
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_api_error(self, monkeypatch):
+        """测试 API 返回错误码"""
+        import json
+
+        from parse_video_py.parser.qqvideo import QQVideo
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                @property
+                def text(self):
+                    return (
+                        "QZOutputJson="
+                        + json.dumps({"em": 100, "msg": "视频不存在"})
+                        + ";"
+                    )
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+        qv = QQVideo()
+        with pytest.raises(Exception, match="腾讯视频API返回错误"):
+            await qv.parse_video_id("invalid_vid")
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_empty(self):
+        """测试空视频 ID"""
+        qv = QQVideo()
+        with pytest.raises(ValueError, match="视频ID不能为空"):
+            await qv.parse_video_id("")
 ```
 
 - [ ] **Step 2: 运行测试确认失败（模块不存在）**
@@ -330,6 +515,115 @@ class TestSohuVideoSource:
 
     def test_sohu_source_exists(self):
         assert VideoSource.Sohu.value == "sohu"
+
+
+class TestSohuParseVideoId:
+    """测试 parse_video_id 响应解析（mock httpx）"""
+
+    @pytest.fixture
+    def mock_sohu_response(self, monkeypatch):
+        """mock httpx.AsyncClient.get 返回搜狐视频 API 响应"""
+        from parse_video_py.parser.sohu import Sohu
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {
+                        "status": 200,
+                        "data": {
+                            "video_name": "搜狐测试视频",
+                            "url_high_mp4": "https://data.vod.itc.cn/test.mp4",
+                            "originalCutCover": "https://pic.sohu.com/cover.jpg",
+                            "user": {
+                                "user_id": 335942214,
+                                "nickname": "测试用户",
+                                "small_pic": "https://pic.sohu.com/avatar.jpg",
+                            },
+                        },
+                    }
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_sohu_response)
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_success(self, mock_sohu_response):
+        """测试成功解析搜狐视频响应"""
+        s = Sohu()
+        result = await s.parse_video_id("399571612")
+        assert result.video_url == "https://data.vod.itc.cn/test.mp4"
+        assert result.title == "搜狐测试视频"
+        assert result.author.name == "测试用户"
+        assert result.author.uid == "335942214"
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_api_error(self, monkeypatch):
+        """测试 API 返回错误状态"""
+        from parse_video_py.parser.sohu import Sohu
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {
+                        "status": 404,
+                        "statusText": "视频不存在",
+                    }
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+        s = Sohu()
+        with pytest.raises(Exception, match="搜狐视频API返回错误"):
+            await s.parse_video_id("invalid_id")
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_fallback_url(self, monkeypatch):
+        """测试 url_high_mp4 为空时回退到 download_url"""
+        from parse_video_py.parser.sohu import Sohu
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {
+                        "status": 200,
+                        "data": {
+                            "video_name": "回退测试",
+                            "url_high_mp4": "",
+                            "download_url": (
+                                "https://data.vod.itc.cn/fallback.mp4"
+                            ),
+                            "originalCutCover": "",
+                            "user": {},
+                        },
+                    }
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+        s = Sohu()
+        result = await s.parse_video_id("123")
+        assert result.video_url == "https://data.vod.itc.cn/fallback.mp4"
 ```
 
 - [ ] **Step 2: 运行测试确认失败**
@@ -350,7 +644,6 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'parse_video_py.parser.
 
 ```python
 import base64
-import json
 import re
 
 import httpx
@@ -516,6 +809,90 @@ class TestCCTVVideoSource:
 
     def test_cctv_source_exists(self):
         assert VideoSource.CCTV.value == "cctv"
+
+
+class TestCCTVParseVideoId:
+    """测试 parse_video_id 响应解析（mock httpx）"""
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_success(self, monkeypatch):
+        """测试成功解析央视网视频响应"""
+        from parse_video_py.parser.cctv import CCTV
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {
+                        "status": "001",
+                        "hls_url": "https://hls.cctv.cn/test.m3u8",
+                        "title": "新闻联播",
+                        "image": "https://p1.img.cctv.cn/cover.jpg",
+                        "play_channel": "CCTV-1",
+                    }
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+        c = CCTV()
+        result = await c.parse_video_id("68c27e1af8cc47f79000ca944432b0e6")
+        assert result.video_url == "https://hls.cctv.cn/test.m3u8"
+        assert result.title == "新闻联播"
+        assert result.author.name == "CCTV-1"
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_api_error(self, monkeypatch):
+        """测试 API 返回错误状态"""
+        from parse_video_py.parser.cctv import CCTV
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {"status": "002", "title": "视频已删除"}
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+        c = CCTV()
+        with pytest.raises(Exception, match="央视网视频API返回错误"):
+            await c.parse_video_id("invalid_guid")
+
+    @pytest.mark.asyncio
+    async def test_parse_video_id_no_hls_url(self, monkeypatch):
+        """测试 hls_url 为空"""
+        from parse_video_py.parser.cctv import CCTV
+
+        async def mock_get(self, url, **kwargs):
+            class MockResponse:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {"status": "001", "hls_url": ""}
+
+            return MockResponse()
+
+        import httpx
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+        c = CCTV()
+        with pytest.raises(Exception, match="未找到视频播放地址"):
+            await c.parse_video_id("some_guid")
 ```
 
 - [ ] **Step 2: 运行测试确认失败**
@@ -535,7 +912,6 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'parse_video_py.parser.
 创建 `src/parse_video_py/parser/cctv.py`：
 
 ```python
-import json
 import re
 
 import httpx
@@ -678,7 +1054,68 @@ from .sohu import Sohu
     },
 ```
 
-- [ ] **Step 2: 运行全量测试验证无回归**
+- [ ] **Step 2: 编写映射注册测试**
+
+创建 `tests/test_new_parsers_routing.py`：
+
+```python
+import pytest
+
+from parse_video_py.parser import video_source_info_mapping
+from parse_video_py.parser.base import VideoSource
+from parse_video_py.parser.cctv import CCTV
+from parse_video_py.parser.qqvideo import QQVideo
+from parse_video_py.parser.sohu import Sohu
+
+
+class TestCCTVRouting:
+    """测试央视网解析器路由注册"""
+
+    def test_cctv_registered(self):
+        assert VideoSource.CCTV in video_source_info_mapping
+
+    def test_cctv_domains(self):
+        info = video_source_info_mapping[VideoSource.CCTV]
+        assert "tv.cctv.cn" in info["domain_list"]
+        assert "tv.cctv.com" in info["domain_list"]
+
+    def test_cctv_parser_class(self):
+        info = video_source_info_mapping[VideoSource.CCTV]
+        assert info["parser"] is CCTV
+
+
+class TestQQVideoRouting:
+    """测试腾讯视频解析器路由注册"""
+
+    def test_qqvideo_registered(self):
+        assert VideoSource.QQVideo in video_source_info_mapping
+
+    def test_qqvideo_domains(self):
+        info = video_source_info_mapping[VideoSource.QQVideo]
+        assert "v.qq.com" in info["domain_list"]
+
+    def test_qqvideo_parser_class(self):
+        info = video_source_info_mapping[VideoSource.QQVideo]
+        assert info["parser"] is QQVideo
+
+
+class TestSohuRouting:
+    """测试搜狐视频解析器路由注册"""
+
+    def test_sohu_registered(self):
+        assert VideoSource.Sohu in video_source_info_mapping
+
+    def test_sohu_domains(self):
+        info = video_source_info_mapping[VideoSource.Sohu]
+        assert "tv.sohu.com" in info["domain_list"]
+        assert "my.tv.sohu.com" in info["domain_list"]
+
+    def test_sohu_parser_class(self):
+        info = video_source_info_mapping[VideoSource.Sohu]
+        assert info["parser"] is Sohu
+```
+
+- [ ] **Step 3: 运行全量测试验证无回归**
 
 Run: `cd /code/parse-video-py && source .venv/bin/activate && pytest -v`
 Expected: 全部 PASS（包括新增和已有的测试）
@@ -692,7 +1129,43 @@ git commit -m "feat: 注册 QQVideo/Sohu/CCTV 解析器到映射表"
 
 ---
 
-## Task 9: 适配 analyze-video-url Skill
+## Task 9: 更新 README 支持平台列表
+
+**Files:**
+- Modify: `README.md`
+
+- [ ] **Step 1: 更新平台数量和表格**
+
+在 `README.md` 中：
+
+1. 将第 6 行的平台数量从 `22` 改为 `25`：
+```
+Python短视频去水印, 视频目前支持25个平台, 图集目前支持5个平台
+```
+
+2. 在视频表格中（第 51-76 行），按字母序插入三个新平台行。在 `AcFun` 之后插入：
+```
+| 央视网     | ✔  |
+```
+在 `AcFun` 之后（新行后面）按序插入：
+```
+| 搜狐视频    | ✔  |
+```
+在 `Twitter/X` 之前插入：
+```
+| 腾讯视频    | ✔  |
+```
+
+- [ ] **Step 2: 提交**
+
+```bash
+git add README.md
+git commit -m "docs: 更新 README 支持平台列表，新增腾讯/搜狐/CCTV"
+```
+
+---
+
+## Task 10: 适配 analyze-video-url Skill
 
 **Files:**
 - Create: `.claude/skills/analyze-video-url/SKILL.md`
@@ -742,7 +1215,12 @@ git commit -m "feat: 注册 QQVideo/Sohu/CCTV 解析器到映射表"
 
 核心分析流程（步骤 1-4、Red Flags、常见错误）的逻辑和判断规则保持不变。
 
-- [ ] **Step 2: 提交**
+- [ ] **Step 2: 验证无 Go 项目残留引用**
+
+Run: `grep -E 'parser/vars\\.go|go test|resty|gjson|\\.go:[0-9]|cmd/handlers\\.go|VideoParseInfo|VideoShareUrlDomain' .claude/skills/analyze-video-url/SKILL.md || echo "PASS: 无 Go 残留引用"`
+Expected: `PASS: 无 Go 残留引用`
+
+- [ ] **Step 3: 提交**
 
 ```bash
 git add .claude/skills/analyze-video-url/SKILL.md
@@ -751,7 +1229,7 @@ git commit -m "feat: 适配 analyze-video-url Skill 到 Python 项目"
 
 ---
 
-## Task 10: 最终验证
+## Task 11: 最终验证
 
 - [ ] **Step 1: 运行全量测试套件**
 
