@@ -33,6 +33,9 @@ class VideoSource(Enum):
     BiliBili = "bilibili"  # 哔哩哔哩
     RedBook = "redbook"  # 小红书
     Twitter = "twitter"  # Twitter/X
+    QQVideo = "qqvideo"  # 腾讯视频
+    Sohu = "sohu"  # 搜狐视频
+    CCTV = "cctv"  # 央视网
 
 
 @dataclasses.dataclass
