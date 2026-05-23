@@ -223,3 +223,17 @@ video_info = asyncio.run(parse_video_id(VideoSource.DouYin, "video_id"))
 - **Video**: 20+ platforms including Douyin, Kuaishou, Weibo, Bilibili, etc.
 - **Image Albums**: 5 platforms (Douyin, Kuaishou, Xiaohongshu, Pipixia, Weibo)
 - **Live Photos**: Douyin and Xiaohongshu (with platform-specific implementations)
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for this repo. Use the `gh` CLI for all operations. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the default five-role triage label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo. Domain glossary at `CONTEXT.md` and ADRs at `docs/adr/` in the repo root. See `docs/agents/domain.md`.
