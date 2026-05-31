@@ -13,7 +13,7 @@ class KuaiShou(BaseParser):
     """
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
-        user_agent = fake_useragent.UserAgent(os=["ios"]).random
+        user_agent = fake_useragent.UserAgent(os="iOS").random
 
         # 获取跳转前的信息, 从中获取跳转url, cookie
         async with httpx.AsyncClient(follow_redirects=False) as client:

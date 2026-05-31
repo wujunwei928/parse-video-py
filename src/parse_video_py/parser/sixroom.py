@@ -30,7 +30,7 @@ class SixRoom(BaseParser):
         )
         headers = {
             "Referer": f"https://m.6.cn/v/{video_id}",
-            "User-Agent": fake_useragent.UserAgent(os=["ios"]).random,
+            "User-Agent": fake_useragent.UserAgent(os="iOS").random,
         }
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(req_url, headers=headers)
