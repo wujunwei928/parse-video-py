@@ -1,10 +1,16 @@
 """CLI 模块单元测试"""
 
+import re
+
 from typer.testing import CliRunner
 
 from parse_video_py.cli import app
 
 runner = CliRunner()
+
+
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 class TestVersionCommand:
@@ -45,5 +51,6 @@ class TestHelpOutput:
     def test_serve_help(self):
         result = runner.invoke(app, ["serve", "--help"])
         assert result.exit_code == 0
-        assert "--host" in result.output
-        assert "--port" in result.output
+        output = _strip_ansi(result.output)
+        assert "--host" in output
+        assert "--port" in output
