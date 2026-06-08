@@ -8,49 +8,51 @@ This is a Python-based video parsing service that extracts video information fro
 
 ## Architecture
 
-The application follows a modular architecture:
+Source code lives under `src/parse_video_py/` (hatchling build).
 
-- **FastAPI Web Framework** (`main.py`): Provides REST API endpoints and web interface
-- **Parser Module** (`parser/`): Contains platform-specific parsers with a common base class
-- **Template System** (`templates/`): Jinja2 templates for the web interface
-- **Utilities** (`utils/`): Shared utility functions
+- **Web** (`src/parse_video_py/web.py`): FastAPI app, routes, Basic Auth, MCP
+- **Parsers** (`src/parse_video_py/parser/`): 26 platform parsers inheriting `BaseParser`
+- **CLI** (`src/parse_video_py/cli/`): Typer commands (parse/serve/version)
+- **Utils** (`src/parse_video_py/utils.py`): URL extraction, query param parsing
 
 ### Core Components
 
-**BaseParser System** (`parser/base.py`):
-- Abstract base class defining the interface for all platform parsers
-- Provides common headers using fake-useragent
-- Defines data structures: `VideoInfo`, `VideoAuthor`, `ImgInfo`
+**BaseParser** (`src/parse_video_py/parser/base.py`):
+- Abstract base class for all platform parsers
+- Defines `VideoSource` enum (26 platforms), `VideoInfo`, `VideoAuthor`, `ImgInfo` dataclasses
+- Subclasses must implement `parse_share_url()` and `parse_video_id()`
 
-**Platform Parsers** (`parser/`):
-Each platform has its own parser inheriting from `BaseParser`:
-- Must implement `parse_share_url()` and `parse_video_id()` methods
-- Returns standardized `VideoInfo` objects
-- Some parsers support both video and image album parsing (e.g., Weibo, Douyin, Kuaishou)
-- Image URLs are stored in the `images` field as `ImgInfo` objects
-
-**Video Source Mapping** (`parser/__init__.py`):
-- Maps `VideoSource` enum to domain lists and parser classes
-- Contains `video_source_info_mapping` dictionary for routing requests
-- Provides `parse_video_share_url()` and `parse_video_id()` helper functions
+**Parser Routing** (`src/parse_video_py/parser/__init__.py`):
+- `video_source_info_mapping`: VideoSource → domain_list + parser class
+- `parse_video_share_url()`: URL → domain match → parser → VideoInfo
+- `parse_video_id()`: VideoSource + ID → parser → VideoInfo
 
 ## Development Commands
 
 ### Local Development
 ```bash
-# Create and activate virtual environment (Python >= 3.10 required)
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+# Create venv and install all dependencies (Python >= 3.10 required)
+uv venv && uv pip install -e ".[all]"
 
-# Install dependencies
-pip install -r requirements.txt
+# Install with optional groups
+uv pip install -e ".[web]"      # Web server only
+uv pip install -e ".[cli]"      # CLI only
+uv pip install -e ".[all,dev]"  # With dev tools
+
+# Activate venv
+source .venv/bin/activate
 
 # Run development server
 uvicorn main:app --reload
 
 # Run production server
 uvicorn main:app --host 0.0.0.0 --port 8000
+
+# CLI usage
+parse-video-py parse "https://v.douyin.com/xxx"
+parse-video-py parse "url1" "url2" --format json
+parse-video-py parse -f urls.txt
+parse-video-py serve --port 8000
 ```
 
 ### Code Quality
@@ -72,35 +74,25 @@ flake8 .
 **Note**: The actual flake8 configuration in `.pre-commit-config.yaml` shows max line length as 88, but some development uses 79. Follow existing patterns in each file.
 
 ### Testing
-The project uses pytest with comprehensive test coverage:
+The project uses pytest with pytest-asyncio (`asyncio_mode = "auto"` in `pyproject.toml`):
 
 ```bash
 # Run all tests
-pytest
+pytest tests/ -v --tb=short
 
-# Run specific test file
-pytest tests/test_api.py
-pytest tests/test_base.py
-pytest tests/test_routing.py
-pytest tests/test_weibo_album.py
+# Run specific test files
+pytest tests/test_main.py         # API endpoint tests
+pytest tests/test_cli.py          # CLI command tests
+pytest tests/test_utils.py        # Utility function tests
+pytest tests/test_new_parsers_routing.py  # Parser routing tests
+pytest tests/test_cctv.py         # Platform-specific parser tests
+pytest tests/test_qqvideo.py
+pytest tests/test_sohu.py
+pytest tests/test_twitter.py
 
 # Run tests with coverage
-pytest --cov=parser
-
-# Run tests with verbose output
-pytest -v
-
-# Run specific test class or method
-pytest tests/test_base.py::TestDataClasses
-pytest tests/test_base.py::TestDataClasses::test_video_author_creation
-
-# Run tests with markers
-pytest -m unit          # Run unit tests only
-pytest -m integration   # Run integration tests only
-pytest -m "not slow"     # Skip slow tests
+pytest --cov=parse_video_py
 ```
-
-**Test Structure**: See `tests/README.md` for detailed testing guide including mock strategies and async test patterns.
 
 ### Docker
 ```bash
@@ -111,118 +103,53 @@ docker run -d -p 8000:8000 wujunwei928/parse-video-py
 docker run -d -p 8000:8000 -e PARSE_VIDEO_USERNAME=username -e PARSE_VIDEO_PASSWORD=password wujunwei928/parse-video-py
 ```
 
-## API Usage
+## API Endpoints
 
-### Endpoints
 - `GET /`: Web interface
 - `GET /video/share/url/parse?url=<share_url>`: Parse video from share URL
 - `GET /video/id/parse?source=<source>&video_id=<id>`: Parse video by ID
+- MCP endpoint: `http://localhost:8000/mcp` (via FastAPI-MCP in `web.py`)
 
 ### Basic Auth
-Set environment variables to enable authentication:
+Set environment variables to enable (unset = disabled):
 ```bash
 export PARSE_VIDEO_USERNAME=username
 export PARSE_VIDEO_PASSWORD=password
 ```
 
-## Adding New Platforms
-
-1. Create new parser class in `parser/` inheriting from `BaseParser`
-2. Add enum value to `VideoSource` in `base.py`
-3. Update `video_source_info_mapping` in `__init__.py` with domain and parser
-4. Implement required abstract methods: `parse_share_url()` and `parse_video_id()`
-
-## Video Data Structure
-
-```python
-@dataclasses.dataclass
-class VideoInfo:
-    video_url: str           # Direct video URL
-    cover_url: str           # Video thumbnail
-    title: str = ""          # Video title
-    music_url: str = ""      # Background music URL
-    images: List[ImgInfo] = []  # Image gallery URLs
-    author: VideoAuthor = VideoAuthor()  # Author info
-```
-
-## MCP Support
-
-The project supports [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) for integration with AI tools:
-- MCP endpoint: `http://localhost:8000/mcp`
-- Uses StreamableHttp method for AI tool integration
-- Enabled via FastAPI-MCP integration in `main.py`
-
 ## Important Notes
 
 - All parsers must handle both share URLs and video IDs
-- Use `fake_useragent.UserAgent(os=["ios"]).random` for mobile user agents
+- Default UA: `fake_useragent.UserAgent(os="iOS").random` (some parsers use `os="windows"`)
 - Video URLs should be direct, watermark-free when possible
-- Error handling should return meaningful messages for unsupported platforms
-- The system supports both video and image gallery parsing:
-  - Video content: stored in `video_url` field
-  - Image albums: stored as list of `ImgInfo` objects in `images` field
-- Some platforms (Weibo, Douyin, Kuaishou, Xiaohongshu, Pipixia) support both video and image parsing
-- Bilibili parser supports Cookie configuration for higher quality videos (commented out by default)
-- Use app share links when possible, desktop web versions may not be fully tested
-- Image parsers should prioritize highest quality URLs: large > original > bmiddle > url
+- 26 platforms support video, 5 also support image albums (Douyin, Kuaishou, Xiaohongshu, Pipixia, Weibo)
+- LivePhoto support: Douyin and Xiaohongshu
+- Image parsers should prioritize highest quality: large > original > bmiddle > url
+- Use app share links when possible; desktop web versions may not be fully tested
+- Auth uses `secrets.compare_digest()` — do not replace with plain string comparison
+- Platform-specific details (Douyin Live Photo, Weibo album, etc.) → see `docs/knowledge/03_core_flows.md`
 
-## Platform-Specific Implementation Details
+## Adding New Platforms
 
-**Douyin (抖音) Live Photo Support**:
-- Implements specialized slidesinfo API for image galleries with Live Photos
-- Detects note content via canonical URLs and HTML patterns
-- Extracts both static images and Live Photo video URLs
-- Prioritizes non-WebP image formats for better quality
-- Supports modal_id parameter for jingxuan page URLs
-- Generates required web_id and a_bogus parameters for API calls
-
-**Weibo (微博) Album Parsing**:
-- Handles both TV show URLs and regular post URLs
-- Supports image galleries with multiple quality levels
-- Extracts author information and timestamps
-- Handles different URL patterns: `/tv/show/`, `show?fid=`, regular posts
-
-## Parser Implementation Patterns
-
-**For platforms supporting both video and image content:**
-- URL routing logic should detect content type and route appropriately
-- Video URLs typically contain patterns like `/tv/show/`, `show?fid=`, `/video/`
-- Image album URLs are usually regular post URLs that need to be parsed to determine content type
-- Implement fallback strategies (mobile API → desktop HTML parsing) for robustness
-
-**For image album parsing:**
-- Extract image URLs from platform-specific API responses or HTML
-- Return multiple `ImgInfo` objects in the `images` field
-- Handle LivePhoto support where applicable (e.g., Douyin, Xiaohongshu)
-- For Douyin: Use slidesinfo API with proper authentication parameters
-- For Xiaohongshu: Extract LivePhoto URLs from image metadata
+1. Create `src/parse_video_py/parser/<name>.py` inheriting from `BaseParser`
+2. Add enum value to `VideoSource` in `base.py`
+3. Update `video_source_info_mapping` in `parser/__init__.py` with domain list and parser class
+4. Implement `parse_share_url()` and `parse_video_id()`
+5. Add tests in `tests/test_<name>.py`
+6. Update knowledge base: `02_project_map.md` + `99_global_index.md`
 
 ## Direct Parser Usage
 
 ```python
 import asyncio
-from parser import parse_video_share_url, parse_video_id, VideoSource
+from parse_video_py import parse_video_share_url, parse_video_id, VideoSource
 
 # Parse from share URL
 video_info = asyncio.run(parse_video_share_url("share_url"))
 
 # Parse from video ID
 video_info = asyncio.run(parse_video_id(VideoSource.DouYin, "video_id"))
-
-# Example: Test parsing with real URLs
 ```
-
-## Development and Testing
-
-### Authentication and Security
-- Basic auth can be enabled via environment variables: `PARSE_VIDEO_USERNAME` and `PARSE_VIDEO_PASSWORD`
-- Uses `secrets.compare_digest()` for secure credential comparison
-- MCP integration supports AI tool connections at `/mcp` endpoint
-
-### Supported Platforms Summary
-- **Video**: 20+ platforms including Douyin, Kuaishou, Weibo, Bilibili, etc.
-- **Image Albums**: 5 platforms (Douyin, Kuaishou, Xiaohongshu, Pipixia, Weibo)
-- **Live Photos**: Douyin and Xiaohongshu (with platform-specific implementations)
 
 ## Agent skills
 
@@ -237,3 +164,64 @@ Uses the default five-role triage label vocabulary (needs-triage, needs-info, re
 ### Domain docs
 
 Single-context repo. Domain glossary at `CONTEXT.md` and ADRs at `docs/adr/` in the repo root. See `docs/agents/domain.md`.
+
+---
+
+## AI 知识库使用规则（强制）
+
+> **IMPORTANT**: 本项目有 AI 编程知识库。任何代码修改前，必须先读取知识库中的相关文档。这不是建议，是硬性规则。违反此规则可能导致误改核心逻辑、破坏现有功能。
+
+### 知识库位置
+- 项目知识库：`docs/knowledge/`
+- **入口文件（必读）**：`docs/knowledge/00_ai_entry.md`
+- **全局索引（必读）**：`docs/knowledge/99_global_index.md`
+
+### 强制工作流
+
+**每次接到任务时，执行以下步骤：**
+
+1. **先读** `docs/knowledge/99_global_index.md`，根据任务类型确定需要读哪些文档
+2. **再读**对应文档，理解相关流程和约束
+3. **然后**才开始编写或修改代码
+4. **最后**判断是否需要更新知识库
+
+跳过步骤 1-2 直接修改代码是**被禁止的**。
+
+### 按任务类型的必读文档
+
+| 任务类型 | 必须先读 | 原因 |
+|---|---|---|
+| 新增平台解析器 | 全局索引 → 核心流程 → 编码规则 | 确认解析器模式和路由注册 |
+| 修改解析逻辑 | 全局索引 → 核心流程 → 变更安全 | 确认影响范围 |
+| 修改鉴权 | 全局索引 → 变更安全 | Basic Auth 高风险区域 |
+| 新增接口 | 全局索引 → 核心流程 → 编码规则 | 确认路由和响应格式 |
+| 修 Bug | 全局索引 → 核心流程 | 理解上下文再修复 |
+
+### 高风险修改约束
+
+修改以下区域前**必须阅读变更安全文档**，否则禁止修改：
+- 解析器路由映射（`video_source_info_mapping`）
+- BaseParser 接口和数据结构（`VideoInfo`、`VideoSource`）
+- Web 鉴权逻辑
+- 部署配置/CI/CD
+
+禁止事项：
+- 禁止一次性大范围重构稳定代码
+- 禁止删除未知用途代码
+- 禁止未确认调用方就改公共函数签名
+- 禁止把密钥写入代码
+
+### 变更后知识库维护
+
+代码发生以下变更后，必须同步更新对应的知识库文档：
+- 新增/删除解析器 → 项目地图 + 核心流程 + 全局索引
+- 修改 VideoInfo 结构 → 项目地图 + 核心流程
+- 修改鉴权逻辑 → 核心流程 + 变更安全
+- 新增环境变量 → 项目地图 + 构建部署 + 变更安全
+- 修改部署方式 → 构建部署 + 变更安全
+
+### 不需要更新知识库的情况
+- 单个解析器内部逻辑微调
+- 无业务含义的样式调整
+- 局部 bugfix 且不改变流程
+- 测试用例补充但不改变规则
