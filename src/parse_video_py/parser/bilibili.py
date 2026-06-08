@@ -1,8 +1,7 @@
 import json
 from urllib.parse import urlparse
 
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -95,7 +94,7 @@ class BiliBili(BaseParser):
 
         if "b23.tv" in parsed_url.netloc:
             # 处理短链接
-            async with httpx.AsyncClient(follow_redirects=False) as client:
+            async with create_async_client(follow_redirects=False) as client:
                 resp = await client.get(raw_url, headers=self.get_default_headers())
                 location = resp.headers.get("location")
                 if not location:
@@ -113,7 +112,7 @@ class BiliBili(BaseParser):
 
     async def _send_bili_request(self, api_url: str) -> str:
         """发送B站API请求"""
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(api_url, headers=self.get_default_headers())
             if response.status_code != 200:
                 raise ValueError(f"HTTP请求失败, 状态码: {response.status_code}")

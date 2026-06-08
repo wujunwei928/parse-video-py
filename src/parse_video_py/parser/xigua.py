@@ -2,8 +2,8 @@ import json
 import re
 
 import fake_useragent
-import httpx
 
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -21,7 +21,7 @@ class XiGua(BaseParser):
             video_id = share_url.strip("/").split("/")[-1]
             return await self.parse_video_id(video_id)
 
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             response = await client.get(share_url, headers=headers)
 
         location_url = response.headers.get("location", "")
@@ -39,7 +39,7 @@ class XiGua(BaseParser):
             f"&utm_campaign=client_share&utm_medium=android&app=aweme"
         )
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 

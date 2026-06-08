@@ -2,8 +2,7 @@ import json
 import re
 from urllib.parse import parse_qs, urlparse
 
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, VideoInfo
 
 # 匹配腾讯视频页面路径中的视频 ID
@@ -29,7 +28,7 @@ class QQVideo(BaseParser):
             "&platform=101001&otype=json&defn=shd"
         )
 
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(api_url, headers=self.get_default_headers())
             response.raise_for_status()
 

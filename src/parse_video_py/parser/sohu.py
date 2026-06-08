@@ -1,8 +1,7 @@
 import base64
 import re
 
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 # 匹配 tv.sohu.com/v/{base64}.html 格式的路径
@@ -33,7 +32,7 @@ class Sohu(BaseParser):
             "&sver=6.2.0"
         )
 
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(api_url, headers=self.get_default_headers())
             response.raise_for_status()
 

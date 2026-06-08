@@ -1,5 +1,4 @@
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
@@ -9,7 +8,7 @@ class PiPiXia(BaseParser):
     """
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             response = await client.get(share_url, headers=self.get_default_headers())
         location_url = response.headers.get("location", "")
         if len(location_url) <= 0:
@@ -25,7 +24,7 @@ class PiPiXia(BaseParser):
             + f"?offset=0&cell_type=1&api_version=1&cell_id={video_id}"
             + "&ac=wifi&channel=huawei_1319_64&aid=1319&app_name=super"
         )
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 

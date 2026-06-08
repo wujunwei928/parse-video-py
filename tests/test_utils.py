@@ -1,4 +1,41 @@
-from parse_video_py.utils import extract_url
+import os
+from unittest.mock import patch
+
+from parse_video_py.utils import create_async_client, extract_url
+
+
+class TestCreateAsyncClient:
+    """测试代理客户端工厂函数"""
+
+    def test_no_proxy_env(self):
+        """未设置代理环境变量时，httpx.AsyncClient 不传 proxy 参数"""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("parse_video_py.utils.httpx.AsyncClient") as mock:
+                create_async_client()
+                mock.assert_called_once_with()
+
+    def test_with_proxy_env(self):
+        """设置代理环境变量后，proxy 参数被注入"""
+        proxy_url = "http://user:pass@proxy.example.com:8080"
+        with patch.dict(os.environ, {"PARSE_VIDEO_PROXY": proxy_url}):
+            with patch("parse_video_py.utils.httpx.AsyncClient") as mock:
+                create_async_client()
+                mock.assert_called_once_with(proxy=proxy_url)
+
+    def test_proxy_with_follow_redirects(self):
+        """代理和 follow_redirects 参数可共存"""
+        proxy_url = "http://proxy.example.com:8080"
+        with patch.dict(os.environ, {"PARSE_VIDEO_PROXY": proxy_url}):
+            with patch("parse_video_py.utils.httpx.AsyncClient") as mock:
+                create_async_client(follow_redirects=True)
+                mock.assert_called_once_with(proxy=proxy_url, follow_redirects=True)
+
+    def test_existing_kwargs_preserved(self):
+        """未设代理时，透传的 kwargs 不变"""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("parse_video_py.utils.httpx.AsyncClient") as mock:
+                create_async_client(follow_redirects=False)
+                mock.assert_called_once_with(follow_redirects=False)
 
 
 class TestExtractUrl:

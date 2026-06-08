@@ -20,6 +20,7 @@ source_commit: dd55df3
 |---|---|---|---|---|---|
 | `PARSE_VIDEO_USERNAME` | Basic Auth 用户名 | 是 | 不设置=不开启 | `web.py:34` | `web.py:34` |
 | `PARSE_VIDEO_PASSWORD` | Basic Auth 密码 | 是 | 不设置=不开启 | `web.py:35` | `web.py:35` |
+| `PARSE_VIDEO_PROXY` | HTTP/HTTPS 代理地址 | 是 | 不设置=直连 | `utils.py:create_async_client()` | `utils.py` |
 
 ## 安装依赖
 
@@ -100,6 +101,7 @@ docker build -t parse-video-py .
 - CI/CD：GitHub Actions 自动构建推送到 Docker Hub（`docker.yml`）
 - 镜像：`wujunwei928/parse-video-py:latest`
 - 证据来源：`Dockerfile`、`.github/workflows/docker.yml`
+- 代理配置：`docker run -e PARSE_VIDEO_PROXY=http://proxy:端口`
 
 **CI/CD 流程**：
 
@@ -119,3 +121,74 @@ docker build -t parse-video-py .
 | "does not have source config" | URL 域名未在映射表中 | 检查 `video_source_info_mapping` 的 `domain_list` | `parser/__init__.py:29-145` |
 | Docker 构建失败 | 依赖安装问题 | 检查 `pyproject.toml` 和网络 | `Dockerfile` |
 | pre-commit pytest 卡死 | 测试超时 | 添加 `--timeout=60` | `.pre-commit-config.yaml` |
+
+## 代理测试
+
+### 免费代理获取
+
+免费 HTTP 代理不稳定，仅供测试。推荐来源：
+
+- **ProxyScrape API**（实时，质量较好）：`https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all`
+- **proxifly/free-proxy-list**（GitHub，每 5 分钟更新）：`https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.json`
+- **free-proxy-list.net**：网页列表，需手动提取
+
+### 快速验证代理是否生效
+
+```bash
+# 1. 设置代理
+export PARSE_VIDEO_PROXY=http://代理地址:端口
+
+# 2. 验证出口 IP 是否切换
+python3 -c "
+import asyncio, os
+from parse_video_py.utils import create_async_client
+
+async def check():
+    client = create_async_client(follow_redirects=True)
+    resp = await client.get('https://httpbin.org/ip', timeout=10)
+    print(f'出口 IP: {resp.json()[\"origin\"]}')
+    await client.aclose()
+
+asyncio.run(check())
+"
+
+# 3. 测试解析
+parse-video-py parse "https://v.douyin.com/xxx"
+
+# 4. 清除代理
+unset PARSE_VIDEO_PROXY
+```
+
+### 批量筛选可用代理
+
+从 ProxyScrape 获取列表后并发测试，典型命中率约 20%（50 个中约 10 个可用）：
+
+```python
+import asyncio, os, urllib.request
+from parse_video_py.utils import create_async_client
+
+async def test_proxy(proxy_addr):
+    os.environ["PARSE_VIDEO_PROXY"] = f"http://{proxy_addr}"
+    client = create_async_client(follow_redirects=True)
+    try:
+        resp = await client.get("https://httpbin.org/ip", timeout=10)
+        origin = resp.json()["origin"]
+        await client.aclose()
+        return proxy_addr, origin
+    except Exception:
+        await client.aclose()
+        return None, None
+
+async def main():
+    url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all"
+    proxies = urllib.request.urlopen(url, timeout=10).read().decode().strip().split("\n")
+
+    tasks = [test_proxy(p.strip()) for p in proxies[:30]]
+    results = await asyncio.gather(*tasks)
+
+    for addr, ip in results:
+        if addr:
+            print(f"✅ {addr} → {ip}")
+
+asyncio.run(main())
+```

@@ -1,8 +1,7 @@
 import math
 import re
 
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
@@ -38,7 +37,7 @@ class Twitter(BaseParser):
             "Referer": "https://platform.twitter.com/",
         }
 
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(api_url, headers=headers)
             response.raise_for_status()
 
@@ -136,7 +135,7 @@ class Twitter(BaseParser):
         """
         解析 t.co 短链接，获取真实 URL
         """
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             response = await client.get(
                 tco_url,
                 headers={

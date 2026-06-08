@@ -1,6 +1,4 @@
-import httpx
-
-from parse_video_py.utils import get_val_from_url_by_query_key
+from parse_video_py.utils import create_async_client, get_val_from_url_by_query_key
 
 from .base import BaseParser, VideoAuthor, VideoInfo
 
@@ -19,7 +17,7 @@ class WeiShi(BaseParser):
             "https://h5.weishi.qq.com/webapp/json/weishi/WSH5GetPlayPage"
             f"?feedid={video_id}"
         )
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 

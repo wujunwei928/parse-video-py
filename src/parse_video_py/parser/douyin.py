@@ -4,8 +4,7 @@ import secrets
 import string
 from urllib.parse import parse_qs, urlparse
 
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
@@ -34,7 +33,7 @@ class DouYin(BaseParser):
         else:
             raise ValueError(f"Douyin not support this host: {host}")
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.get(share_url, headers=self.get_default_headers())
             response.raise_for_status()
 
@@ -179,7 +178,7 @@ class DouYin(BaseParser):
         return video_info
 
     async def get_video_redirect_url(self, video_url: str) -> str:
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             response = await client.get(video_url, headers=self.get_default_headers())
         # 返回重定向后的地址，如果没有重定向则返回原地址(抖音中的西瓜视频,重定向地址为空)
         return response.headers.get("location") or video_url
@@ -193,7 +192,7 @@ class DouYin(BaseParser):
 
     async def _parse_app_share_url(self, share_url: str) -> str:
         """解析app分享链接 https://v.douyin.com/xxxxxx"""
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             response = await client.get(share_url, headers=self.get_default_headers())
 
         location = response.headers.get("location")
@@ -293,7 +292,7 @@ class DouYin(BaseParser):
                 f"&a_bogus={a_bogus}"
             )
 
-            async with httpx.AsyncClient() as client:
+            async with create_async_client() as client:
                 response = await client.get(api_url, headers=self.get_default_headers())
                 response.raise_for_status()
 

@@ -61,14 +61,14 @@ confidence: high
 | CLI 入口 | `cli/__init__.py` | Typer 命令注册（parse/serve/version） | pyproject.toml scripts | 中 | `cli/__init__.py` |
 | CLI 解析逻辑 | `cli/_parse.py` | 解析命令核心逻辑、批量解析、并发控制 | cli/__init__.py | 中 | `cli/_parse.py` |
 | CLI 输出 | `cli/output.py` | 结果格式化（text/json） | cli/_parse.py | 低 | `cli/output.py` |
-| 工具函数 | `utils.py` | URL 提取、query 参数解析 | web.py、cli/_parse.py、部分解析器 | **高** | `utils.py` |
+| 工具函数 | `utils.py` | URL 提取、query 参数解析、HTTP 客户端工厂 | web.py、cli/_parse.py、所有解析器 | **高** | `utils.py` |
 | 26 个解析器 | `parser/*.py` | 各平台视频/图集解析 | parser/__init__.py 路由 | 中 | `parser/` |
 
 ## 外部依赖
 
 | 依赖 | 用途 | 配置位置 | 调用位置 | 证据来源 |
 |---|---|---|---|---|
-| httpx | HTTP 请求（异步） | `pyproject.toml` | 各平台解析器 | `parser/douyin.py`、`parser/weibo.py` 等 |
+| httpx | HTTP 请求（异步） | `pyproject.toml` | 各平台解析器（通过 `utils.py:create_async_client()` 工厂创建） | `parser/douyin.py`、`parser/weibo.py` 等 |
 | aiohttp | HTTP 请求（异步，部分解析器使用） | `pyproject.toml` | 部分解析器 | `pyproject.toml:dependencies` |
 | fake-useragent | 随机 User-Agent 生成 | `pyproject.toml` | `BaseParser.get_default_headers()` | `parser/base.py:99` |
 | parsel + lxml | HTML/XPath 解析 | `pyproject.toml` | 部分解析器 | `pyproject.toml:dependencies` |
@@ -98,6 +98,7 @@ confidence: high
 |---|---|---|---|---|---|
 | `PARSE_VIDEO_USERNAME` | Basic Auth 用户名 | 是 | 未设置=不开启 | `web.py:34` | `web.py:34` |
 | `PARSE_VIDEO_PASSWORD` | Basic Auth 密码 | 是 | 未设置=不开启 | `web.py:35` | `web.py:35` |
+| `PARSE_VIDEO_PROXY` | HTTP 代理地址 | 是 | 未设置=不使用代理，格式：`http://[user:pass@]host:port` | `utils.py:create_async_client()` | `utils.py` |
 
 ## 未确认事项
 

@@ -15,6 +15,7 @@ last_scanned_at: 2026-06-08
 | 修复 Bug | 02_project_map.md、03_core_flows.md、06_build_run_deploy.md | 05_change_safety.md | 先复现问题 |
 | 修改鉴权 | 03_core_flows.md、05_change_safety.md | 04_code_rules.md | 注意时序安全 |
 | 修改 CLI | 02_project_map.md、03_core_flows.md、04_code_rules.md | 06_build_run_deploy.md | 注意向后兼容 |
+| 代理相关 | 06_build_run_deploy.md（含免费代理获取和测试方法） | 02_project_map.md | 仅测试用免费代理 |
 | 部署上线 | 06_build_run_deploy.md | 05_change_safety.md | 不要猜命令 |
 
 ## 修改什么，先看哪里
@@ -54,6 +55,7 @@ last_scanned_at: 2026-06-08
 | `web.py:app` | FastAPI 应用实例 | Web 服务 | 高 |
 | `web.py:_build_auth_dependency()` | Basic Auth 动态构建 | 鉴权 | 高 |
 | `utils.py:extract_url()` | URL 提取正则匹配 | 所有解析入口 | 中 |
+| `utils.py:create_async_client()` | HTTP 客户端工厂（代理注入） | 所有解析器 HTTP 请求 | 高 |
 | `cli/_parse.py:run_parse()` | CLI 解析命令入口 | CLI 批量解析 | 中 |
 
 ## 配置索引
@@ -62,6 +64,7 @@ last_scanned_at: 2026-06-08
 |---|---|---|---|
 | `PARSE_VIDEO_USERNAME` | Basic Auth 用户名 | `web.py:34` | 中（需重启服务） |
 | `PARSE_VIDEO_PASSWORD` | Basic Auth 密码 | `web.py:35` | 中（需重启服务） |
+| `PARSE_VIDEO_PROXY` | HTTP/HTTPS 代理地址 | `utils.py:create_async_client()` | 中（需重启服务） |
 | `pyproject.toml:dependencies` | 核心依赖声明 | 构建安装 | 中 |
 | `pyproject.toml:project.scripts` | CLI 入口点 | CLI 安装 | 中 |
 

@@ -100,6 +100,15 @@ export PARSE_VIDEO_USERNAME=username
 export PARSE_VIDEO_PASSWORD=password
 ```
 
+### 如需设置代理，请设置环境变量（不设置则直连）
+```shell
+# 无认证代理
+export PARSE_VIDEO_PROXY=http://proxy.example.com:端口
+
+# 有认证代理
+export PARSE_VIDEO_PROXY=http://user:pass@proxy.example.com:端口
+```
+
 ### 运行app
 ```shell
 uvicorn parse_video_py.web:app --reload
@@ -119,6 +128,11 @@ docker run -d -p 8000:8000 wujunwei928/parse-video-py
 ### 运行docker容器，开启basic auth认证
 ```bash
 docker run -d -p 8000:8000 -e PARSE_VIDEO_USERNAME=username -e PARSE_VIDEO_PASSWORD=password wujunwei928/parse-video-py
+```
+
+### 运行docker容器，设置代理
+```bash
+docker run -d -p 8000:8000 -e PARSE_VIDEO_PROXY=http://proxy.example.com:端口 wujunwei928/parse-video-py
 ```
 
 # 查看前端页面

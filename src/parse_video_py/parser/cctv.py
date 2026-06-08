@@ -1,7 +1,6 @@
 import re
 
-import httpx
-
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 # 匹配央视网页面中嵌入的视频 GUID
@@ -24,7 +23,7 @@ class CCTV(BaseParser):
 
         api_url = "https://vdn.apps.cntv.cn/api/" f"getHttpVideoInfo.do?pid={video_id}"
 
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(api_url, headers=self.get_default_headers())
             response.raise_for_status()
 
@@ -58,7 +57,7 @@ class CCTV(BaseParser):
 
     async def _extract_guid(self, page_url: str) -> str:
         """从页面 URL 请求并提取视频 GUID"""
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(page_url, headers=self.get_default_headers())
             response.raise_for_status()
 

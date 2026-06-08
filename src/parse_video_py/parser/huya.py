@@ -1,8 +1,8 @@
 import re
 
 import fake_useragent
-import httpx
 
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -23,7 +23,7 @@ class HuYa(BaseParser):
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
         req_url = f"https://liveapi.huya.com/moment/getMomentContent?videoId={video_id}"
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             headers = {
                 "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
                 "Referer": "https://v.huya.com/",

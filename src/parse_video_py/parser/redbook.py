@@ -1,9 +1,9 @@
 import re
 
 import fake_useragent
-import httpx
 import yaml
 
+from ..utils import create_async_client
 from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
@@ -16,7 +16,7 @@ class RedBook(BaseParser):
         headers = {
             "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
         }
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.get(share_url, headers=headers)
             response.raise_for_status()
 

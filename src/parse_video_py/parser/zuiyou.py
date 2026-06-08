@@ -1,7 +1,4 @@
-import httpx
-
-from parse_video_py.utils import get_val_from_url_by_query_key
-
+from ..utils import create_async_client, get_val_from_url_by_query_key
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -21,7 +18,7 @@ class ZuiYou(BaseParser):
             "h_av": "5.2.13.011",
             "pid": int_video_id,
         }
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.post(
                 req_url, headers=self.get_default_headers(), json=post_data
             )

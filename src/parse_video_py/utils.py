@@ -1,5 +1,8 @@
+import os
 import re
 from urllib.parse import parse_qs, urlparse
+
+import httpx
 
 URL_REG = re.compile(r"http[s]?:\/\/[\w.-]+[\w\/-]*[\w.-]*\??[\w=&:\-\+\%.]*[/]*")
 
@@ -29,3 +32,15 @@ def get_val_from_url_by_query_key(url: str, query_key: str) -> str:
         raise ValueError(f"url中query参数值长度为0: {query_key}")
 
     return url_query[query_key][0]
+
+
+def create_async_client(**kwargs) -> httpx.AsyncClient:
+    """创建 httpx.AsyncClient，自动注入代理配置。
+
+    从环境变量 PARSE_VIDEO_PROXY 读取代理地址（如 http://user:pass@host:port），
+    未设置则不使用代理。其余参数透传给 httpx.AsyncClient。
+    """
+    proxy = os.getenv("PARSE_VIDEO_PROXY")
+    if proxy:
+        kwargs["proxy"] = proxy
+    return httpx.AsyncClient(**kwargs)

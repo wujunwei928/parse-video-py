@@ -1,9 +1,9 @@
 import json
 
 import fake_useragent
-import httpx
 from parsel import Selector
 
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -18,7 +18,7 @@ class XinPianChang(BaseParser):
             "Upgrade-Insecure-Requests": "1",
             "Referer": "https://www.xinpianchang.com/",
         }
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.get(share_url, headers=headers)
             response.raise_for_status()
 
@@ -34,7 +34,7 @@ class XinPianChang(BaseParser):
             f"https://mod-api.xinpianchang.com/mod/api/v2/media/{media_id}"
             f"?appKey={app_key}&extend=userInfo%2CuserStatus"
         )
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             mp4_response = await client.get(req_mp4_url, headers=headers)
             mp4_response.raise_for_status()
         mp4_data = mp4_response.json()

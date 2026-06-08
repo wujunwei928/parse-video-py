@@ -1,7 +1,4 @@
-import httpx
-
-from parse_video_py.utils import get_val_from_url_by_query_key
-
+from ..utils import create_async_client, get_val_from_url_by_query_key
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -16,7 +13,7 @@ class DouPai(BaseParser):
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
         req_url = f"https://v2.doupai.cc/topic/{video_id}.json"
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 

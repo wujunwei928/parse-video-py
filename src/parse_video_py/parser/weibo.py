@@ -2,10 +2,8 @@ import re
 from urllib.parse import urlparse
 
 import fake_useragent
-import httpx
 
-from parse_video_py.utils import get_val_from_url_by_query_key
-
+from ..utils import create_async_client, get_val_from_url_by_query_key
 from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
@@ -42,7 +40,7 @@ class WeiBo(BaseParser):
             "User-Agent": fake_useragent.UserAgent(os="iOS").random,
         }
         post_content = 'data={"Component_Play_Playinfo":{"oid":"' + video_id + '"}}'
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.post(req_url, headers=headers, content=post_content)
             response.raise_for_status()
 
@@ -81,7 +79,7 @@ class WeiBo(BaseParser):
         }
 
         try:
-            async with httpx.AsyncClient(follow_redirects=True) as client:
+            async with create_async_client(follow_redirects=True) as client:
                 response = await client.get(req_url, headers=headers)
                 response.raise_for_status()
 
@@ -96,7 +94,7 @@ class WeiBo(BaseParser):
             "User-Agent": fake_useragent.UserAgent(os="iOS").random,
         }
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.get(original_url, headers=headers)
             response.raise_for_status()
 

@@ -2,9 +2,9 @@ import base64
 from typing import Dict, List
 
 import fake_useragent
-import httpx
 from parsel import Selector
 
+from ..utils import create_async_client
 from .base import BaseParser, VideoAuthor, VideoInfo
 
 
@@ -14,7 +14,7 @@ class MeiPai(BaseParser):
     """
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             headers = {
                 "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
             }

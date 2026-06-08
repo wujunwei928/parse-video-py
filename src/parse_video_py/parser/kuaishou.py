@@ -2,8 +2,8 @@ import json
 import re
 
 import fake_useragent
-import httpx
 
+from ..utils import create_async_client
 from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
 
 
@@ -16,7 +16,7 @@ class KuaiShou(BaseParser):
         user_agent = fake_useragent.UserAgent(os="iOS").random
 
         # 获取跳转前的信息, 从中获取跳转url, cookie
-        async with httpx.AsyncClient(follow_redirects=False) as client:
+        async with create_async_client(follow_redirects=False) as client:
             share_response = await client.get(
                 share_url,
                 headers={
@@ -32,7 +32,7 @@ class KuaiShou(BaseParser):
         # /fw/long-video/ 返回结果不一样, 统一替换为 /fw/photo/ 请求
         location_url = location_url.replace("/fw/long-video/", "/fw/photo/")
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        async with create_async_client(follow_redirects=True) as client:
             response = await client.get(
                 location_url,
                 headers=share_response.headers,

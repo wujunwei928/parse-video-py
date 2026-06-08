@@ -2,8 +2,8 @@ import time
 from urllib.parse import urlparse
 
 import fake_useragent
-import httpx
 
+from ..utils import create_async_client
 from .base import BaseParser, VideoInfo
 
 
@@ -27,7 +27,7 @@ class LiShiPin(BaseParser):
             f"https://www.pearvideo.com/videoStatus.jsp?contId={video_id}&mrd={now}"
         )
 
-        async with httpx.AsyncClient() as client:
+        async with create_async_client() as client:
             headers = {
                 "Referer": f"https://www.pearvideo.com/detail_{video_id}",
                 "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
