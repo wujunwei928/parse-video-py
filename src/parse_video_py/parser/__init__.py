@@ -126,6 +126,7 @@ video_source_info_mapping = {
         "domain_list": [
             "www.xiaohongshu.com",
             "xhslink.com",
+            "xhslink.cn",
         ],
         "parser": RedBook,
     },
