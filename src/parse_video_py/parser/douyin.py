@@ -275,21 +275,33 @@ class DouYin(BaseParser):
 
     async def _get_slides_info(self, video_id: str) -> dict:
         """获取抖音视频或图集的详细信息，包括 Live Photo"""
-        try:
-            api_url = (
+        # 普通视频不带 request_source 可以拿到数据；
+        # 图文（note）需要带 request_source=200。这里逐个尝试。
+        api_urls = [
+            (
                 f"https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/"
                 f"?aweme_ids=%5B{video_id}%5D"
-            )
+            ),
+            (
+                f"https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/"
+                f"?aweme_ids=%5B{video_id}%5D&request_source=200"
+            ),
+        ]
 
-            async with create_async_client() as client:
-                response = await client.get(api_url, headers=self.get_default_headers())
-                response.raise_for_status()
+        async with create_async_client() as client:
+            for api_url in api_urls:
+                try:
+                    response = await client.get(
+                        api_url, headers=self.get_default_headers()
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                except Exception:
+                    continue
+                if data and data.get("aweme_details"):
+                    return data
 
-            data = response.json()
-            return data if data.get("aweme_details") else None
-
-        except Exception:
-            return None
+        return None
 
     def _generate_fixed_length_numeric_id(self, length: int) -> str:
         """生成固定位数的随机数字ID"""
