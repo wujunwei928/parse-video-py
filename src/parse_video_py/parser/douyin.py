@@ -33,20 +33,18 @@ class DouYin(BaseParser):
         else:
             raise ValueError(f"Douyin not support this host: {host}")
 
-        async with create_async_client(follow_redirects=True) as client:
-            response = await client.get(share_url, headers=self.get_default_headers())
-            response.raise_for_status()
-
-        # 检查是否是图集内容
-        is_note = self._is_note_content(response.text, share_url)
-
-        json_data = None
-        if is_note:
-            # 如果是图集，使用专门的API获取数据
-            json_data = await self._get_slides_info(video_id)
+        # 优先通过专用接口获取视频/图集详情。该接口当前同时返回
+        # aweme_details，不再依赖页面 SSR 中的 videoInfoRes 字段。
+        json_data = await self._get_slides_info(video_id)
 
         if not json_data:
-            # 如果专用API失败或者不是图集，使用标准解析方式
+            # 专用接口失败时，回退到旧的 HTML SSR 解析方式
+            async with create_async_client(follow_redirects=True) as client:
+                response = await client.get(
+                    share_url, headers=self.get_default_headers()
+                )
+                response.raise_for_status()
+
             pattern = re.compile(
                 pattern=r"window\._ROUTER_DATA\s*=\s*(.*?)</script>",
                 flags=re.DOTALL,
@@ -276,20 +274,11 @@ class DouYin(BaseParser):
         return False
 
     async def _get_slides_info(self, video_id: str) -> dict:
-        """获取图集的详细信息，包括Live Photo"""
+        """获取抖音视频或图集的详细信息，包括 Live Photo"""
         try:
-            # 生成web_id和a_bogus参数
-            web_id = "75" + self._generate_fixed_length_numeric_id(15)
-            a_bogus = self._rand_seq(64)
-
             api_url = (
                 f"https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/"
-                f"?reflow_source=reflow_page"
-                f"&web_id={web_id}"
-                f"&device_id={web_id}"
-                f"&aweme_ids=%5B{video_id}%5D"
-                f"&request_source=200"
-                f"&a_bogus={a_bogus}"
+                f"?aweme_ids=%5B{video_id}%5D"
             )
 
             async with create_async_client() as client:
