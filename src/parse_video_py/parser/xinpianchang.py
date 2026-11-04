@@ -14,7 +14,7 @@ class XinPianChang(BaseParser):
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
         headers = {
-            "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
+            "User-Agent": fake_useragent.UserAgent(os=["Windows"]).random,
             "Upgrade-Insecure-Requests": "1",
             "Referer": "https://www.xinpianchang.com/",
         }

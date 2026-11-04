@@ -16,7 +16,7 @@ class MeiPai(BaseParser):
     async def parse_share_url(self, share_url: str) -> VideoInfo:
         async with create_async_client() as client:
             headers = {
-                "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
+                "User-Agent": fake_useragent.UserAgent(os=["Windows"]).random,
             }
             response = await client.get(share_url, headers=headers)
             response.raise_for_status()

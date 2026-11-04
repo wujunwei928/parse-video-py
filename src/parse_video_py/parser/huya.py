@@ -25,7 +25,7 @@ class HuYa(BaseParser):
         req_url = f"https://liveapi.huya.com/moment/getMomentContent?videoId={video_id}"
         async with create_async_client() as client:
             headers = {
-                "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
+                "User-Agent": fake_useragent.UserAgent(os=["Windows"]).random,
                 "Referer": "https://v.huya.com/",
             }
             response = await client.get(req_url, headers=headers)

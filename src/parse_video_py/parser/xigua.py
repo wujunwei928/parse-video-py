@@ -14,7 +14,7 @@ class XiGua(BaseParser):
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
         headers = {
-            "User-Agent": fake_useragent.UserAgent(os=["android"]).random,
+            "User-Agent": fake_useragent.UserAgent(os=["Android"]).random,
         }
         if share_url.startswith("https://www.ixigua.com/"):
             # 支持电脑网页版链接 https://www.ixigua.com/xxxxxx

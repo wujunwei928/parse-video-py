@@ -30,7 +30,7 @@ class LiShiPin(BaseParser):
         async with create_async_client() as client:
             headers = {
                 "Referer": f"https://www.pearvideo.com/detail_{video_id}",
-                "User-Agent": fake_useragent.UserAgent(os=["windows"]).random,
+                "User-Agent": fake_useragent.UserAgent(os=["Windows"]).random,
             }
             response = await client.get(req_url, headers=headers)
 
