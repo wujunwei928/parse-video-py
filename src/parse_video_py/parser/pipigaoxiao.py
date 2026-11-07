@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import fake_useragent
 
 from ..utils import create_async_client
-from .base import BaseParser, VideoInfo
+from .base import BaseParser, VideoInfo, VideoSource
 
 
 class PiPiGaoXiao(BaseParser):
@@ -22,7 +22,9 @@ class PiPiGaoXiao(BaseParser):
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
         req_url = "https://share.ippzone.com/ppapi/share/fetch_content"
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.PiPiGaoXiao,
+        ) as client:
             headers = {
                 "Referer": req_url,
                 "Content-Type": "text/plain;charset=UTF-8",

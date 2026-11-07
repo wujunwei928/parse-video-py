@@ -5,7 +5,7 @@ import fake_useragent
 
 from parse_video_py.utils import create_async_client, get_val_from_url_by_query_key
 
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, VideoAuthor, VideoInfo, VideoSource
 
 
 class QuanMinKGe(BaseParser):
@@ -19,7 +19,9 @@ class QuanMinKGe(BaseParser):
 
     async def parse_video_id(self, video_id: str) -> VideoInfo:
         req_url = f"https://kg.qq.com/node/play?s={video_id}"
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.QuanMinKGe,
+        ) as client:
             headers = {
                 "User-Agent": fake_useragent.UserAgent(os="Windows").random,
             }

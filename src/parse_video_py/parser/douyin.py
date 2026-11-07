@@ -5,7 +5,7 @@ import string
 from urllib.parse import parse_qs, urlparse
 
 from ..utils import create_async_client
-from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo, VideoSource
 
 
 class DouYin(BaseParser):
@@ -39,7 +39,9 @@ class DouYin(BaseParser):
 
         if not json_data:
             # 专用接口失败时，回退到旧的 HTML SSR 解析方式
-            async with create_async_client(follow_redirects=True) as client:
+            async with create_async_client(
+                source=VideoSource.DouYin, follow_redirects=True
+            ) as client:
                 response = await client.get(
                     share_url, headers=self.get_default_headers()
                 )
@@ -176,7 +178,9 @@ class DouYin(BaseParser):
         return video_info
 
     async def get_video_redirect_url(self, video_url: str) -> str:
-        async with create_async_client(follow_redirects=False) as client:
+        async with create_async_client(
+            source=VideoSource.DouYin, follow_redirects=False
+        ) as client:
             response = await client.get(video_url, headers=self.get_default_headers())
         # 返回重定向后的地址，如果没有重定向则返回原地址(抖音中的西瓜视频,重定向地址为空)
         return response.headers.get("location") or video_url
@@ -190,7 +194,9 @@ class DouYin(BaseParser):
 
     async def _parse_app_share_url(self, share_url: str) -> str:
         """解析app分享链接 https://v.douyin.com/xxxxxx"""
-        async with create_async_client(follow_redirects=False) as client:
+        async with create_async_client(
+            source=VideoSource.DouYin, follow_redirects=False
+        ) as client:
             response = await client.get(share_url, headers=self.get_default_headers())
 
         location = response.headers.get("location")
@@ -228,7 +234,7 @@ class DouYin(BaseParser):
                 if len(path_parts) > 0:
                     return path_parts[-1]
         except Exception:
-            pass
+            pass  # nosec B110 -- URL 形态无法解析时按无视频 ID 处理，属预期回退
 
         return ""
 
@@ -269,7 +275,7 @@ class DouYin(BaseParser):
                 return True
 
         except Exception:
-            pass
+            pass  # nosec B110 -- 无法判定为图集时按普通视频处理，属预期回退
 
         return False
 
@@ -288,7 +294,9 @@ class DouYin(BaseParser):
             ),
         ]
 
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.DouYin,
+        ) as client:
             for api_url in api_urls:
                 try:
                     response = await client.get(
@@ -297,7 +305,7 @@ class DouYin(BaseParser):
                     response.raise_for_status()
                     data = response.json()
                 except Exception:
-                    continue
+                    continue  # nosec B112 -- 逐个候选 API 试探，失败换下一个，属预期回退
                 if data and data.get("aweme_details"):
                     return data
 

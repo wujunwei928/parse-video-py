@@ -1,6 +1,6 @@
 from parse_video_py.utils import create_async_client, get_val_from_url_by_query_key
 
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, VideoAuthor, VideoInfo, VideoSource
 
 
 class QuanMin(BaseParser):
@@ -17,7 +17,9 @@ class QuanMin(BaseParser):
             "https://quanmin.hao222.com/wise/growth/api/sv/immerse"
             f"?source=share-h5&pd=qm_share_mvideo&_format=json&vid={video_id}"
         )
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.QuanMin,
+        ) as client:
             response = await client.get(req_url, headers=self.get_default_headers())
             response.raise_for_status()
 

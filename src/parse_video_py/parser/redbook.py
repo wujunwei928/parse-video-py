@@ -4,7 +4,7 @@ import fake_useragent
 import yaml
 
 from ..utils import create_async_client
-from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo, VideoSource
 
 
 class RedBook(BaseParser):
@@ -18,7 +18,9 @@ class RedBook(BaseParser):
             # （os 过滤值区分大小写，数据源中为 iOS/Android）
             "User-Agent": fake_useragent.UserAgent(os=["iOS"]).random,
         }
-        async with create_async_client(follow_redirects=True) as client:
+        async with create_async_client(
+            source=VideoSource.RedBook, follow_redirects=True
+        ) as client:
             response = await client.get(share_url, headers=headers)
             response.raise_for_status()
         return self._parse_note_info_from_html(response.text)

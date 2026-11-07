@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import fake_useragent
 
 from ..utils import create_async_client
-from .base import BaseParser, VideoInfo
+from .base import BaseParser, VideoInfo, VideoSource
 
 
 class LiShiPin(BaseParser):
@@ -27,7 +27,9 @@ class LiShiPin(BaseParser):
             f"https://www.pearvideo.com/videoStatus.jsp?contId={video_id}&mrd={now}"
         )
 
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.LiShiPin,
+        ) as client:
             headers = {
                 "Referer": f"https://www.pearvideo.com/detail_{video_id}",
                 "User-Agent": fake_useragent.UserAgent(os=["Windows"]).random,

@@ -3,7 +3,7 @@ import re
 from parsel import Selector
 
 from ..utils import create_async_client
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, VideoAuthor, VideoInfo, VideoSource
 
 
 class LvZhou(BaseParser):
@@ -12,7 +12,9 @@ class LvZhou(BaseParser):
     """
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.LvZhou,
+        ) as client:
             response = await client.get(share_url, headers=self.get_default_headers())
             response.raise_for_status()
 

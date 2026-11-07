@@ -5,7 +5,7 @@ import fake_useragent
 from parsel import Selector
 
 from ..utils import create_async_client
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, VideoAuthor, VideoInfo, VideoSource
 
 
 class MeiPai(BaseParser):
@@ -14,7 +14,9 @@ class MeiPai(BaseParser):
     """
 
     async def parse_share_url(self, share_url: str) -> VideoInfo:
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.MeiPai,
+        ) as client:
             headers = {
                 "User-Agent": fake_useragent.UserAgent(os=["Windows"]).random,
             }

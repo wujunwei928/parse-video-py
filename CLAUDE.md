@@ -10,16 +10,17 @@ This is a Python-based video parsing service that extracts video information fro
 
 Source code lives under `src/parse_video_py/` (hatchling build).
 
-- **Web** (`src/parse_video_py/web.py`): FastAPI app, routes, Basic Auth, MCP
-- **Parsers** (`src/parse_video_py/parser/`): 26 platform parsers inheriting `BaseParser`
+- **Web** (`src/parse_video_py/web.py`): FastAPI app, routes, global Basic Auth middleware, MCP
+- **Parsers** (`src/parse_video_py/parser/`): 25 platform parsers inheriting `BaseParser`
+- **Outbound boundary** (`src/parse_video_py/outbound.py`): per-platform domain allowlist, public-IP and URL shape checks, sensitive-header stripping, response size limit (`CheckedAsyncTransport`); see `docs/adr/0002`
 - **CLI** (`src/parse_video_py/cli/`): Typer commands (parse/serve/version)
-- **Utils** (`src/parse_video_py/utils.py`): URL extraction, query param parsing
+- **Utils** (`src/parse_video_py/utils.py`): URL extraction, query param parsing, HTTP client factory with proxy/timeout defaults
 
 ### Core Components
 
 **BaseParser** (`src/parse_video_py/parser/base.py`):
 - Abstract base class for all platform parsers
-- Defines `VideoSource` enum (26 platforms), `VideoInfo`, `VideoAuthor`, `ImgInfo` dataclasses
+- Defines `VideoSource` enum (25 platforms), `VideoInfo`, `VideoAuthor`, `ImgInfo` dataclasses
 - Subclasses must implement `parse_share_url()` and `parse_video_id()`
 
 **Parser Routing** (`src/parse_video_py/parser/__init__.py`):
@@ -122,7 +123,7 @@ export PARSE_VIDEO_PASSWORD=password
 - All parsers must handle both share URLs and video IDs
 - Default UA: `fake_useragent.UserAgent(os="iOS").random` (some parsers use `os="windows"`)
 - Video URLs should be direct, watermark-free when possible
-- 26 platforms support video, 5 also support image albums (Douyin, Kuaishou, Xiaohongshu, Pipixia, Weibo)
+- 25 platforms support video, 5 also support image albums (Douyin, Kuaishou, Xiaohongshu, Pipixia, Weibo)
 - LivePhoto support: Douyin and Xiaohongshu
 - Image parsers should prioritize highest quality: large > original > bmiddle > url
 - Use app share links when possible; desktop web versions may not be fully tested
@@ -133,8 +134,10 @@ export PARSE_VIDEO_PASSWORD=password
 1. Create `src/parse_video_py/parser/<name>.py` inheriting from `BaseParser`
 2. Add enum value to `VideoSource` in `base.py`
 3. Update `video_source_info_mapping` in `parser/__init__.py` with domain list and parser class
-4. Implement `parse_share_url()` and `parse_video_id()`
-5. Add tests in `tests/test_<name>.py`
+4. Add any platform API/short-link/redirect hosts beyond the share domains to `UPSTREAM_DOMAINS` in `outbound.py` (otherwise outbound requests get rejected)
+5. Create HTTP clients via `create_async_client(source=VideoSource.<Name>, ...)` so requests go through the outbound boundary
+6. Implement `parse_share_url()` and `parse_video_id()`
+7. Add tests in `tests/test_<name>.py`
 
 ## Direct Parser Usage
 

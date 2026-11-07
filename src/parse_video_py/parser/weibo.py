@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import fake_useragent
 
 from ..utils import create_async_client, get_val_from_url_by_query_key
-from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo, VideoSource
 
 
 class WeiBo(BaseParser):
@@ -40,7 +40,9 @@ class WeiBo(BaseParser):
             "User-Agent": fake_useragent.UserAgent(os="iOS").random,
         }
         post_content = 'data={"Component_Play_Playinfo":{"oid":"' + video_id + '"}}'
-        async with create_async_client(follow_redirects=True) as client:
+        async with create_async_client(
+            source=VideoSource.WeiBo, follow_redirects=True
+        ) as client:
             response = await client.post(req_url, headers=headers, content=post_content)
             response.raise_for_status()
 
@@ -79,7 +81,9 @@ class WeiBo(BaseParser):
         }
 
         try:
-            async with create_async_client(follow_redirects=True) as client:
+            async with create_async_client(
+                source=VideoSource.WeiBo, follow_redirects=True
+            ) as client:
                 response = await client.get(req_url, headers=headers)
                 response.raise_for_status()
 
@@ -87,14 +91,16 @@ class WeiBo(BaseParser):
             if "data" in json_data:
                 return await self._parse_mobile_api_data(json_data["data"])
         except Exception:
-            pass
+            pass  # nosec B110 -- 移动端 API 失败时回退桌面页解析，属预期回退
 
         # Fallback to desktop page parsing using the original URL
         headers = {
             "User-Agent": fake_useragent.UserAgent(os="iOS").random,
         }
 
-        async with create_async_client(follow_redirects=True) as client:
+        async with create_async_client(
+            source=VideoSource.WeiBo, follow_redirects=True
+        ) as client:
             response = await client.get(original_url, headers=headers)
             response.raise_for_status()
 

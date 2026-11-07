@@ -34,10 +34,24 @@ def parse(
 
 @app.command()
 def serve(
-    host: str = typer.Option("0.0.0.0", "--host", help="服务监听地址"),
+    host: str = typer.Option(  # nosec B104 -- 既定部署默认值，可用 --host 收窄
+        "0.0.0.0", "--host", help="服务监听地址"
+    ),
     port: int = typer.Option(8000, "--port", "-p", help="服务监听端口"),
 ):
     """启动 HTTP 解析服务"""
+    import os
+
+    # Basic Auth 凭据必须成对配置：只设其一属于配置错误，拒绝启动
+    username = os.getenv("PARSE_VIDEO_USERNAME")
+    password = os.getenv("PARSE_VIDEO_PASSWORD")
+    if bool(username) != bool(password):
+        typer.echo(
+            "错误: PARSE_VIDEO_USERNAME 与 PARSE_VIDEO_PASSWORD 必须同时设置或同时留空",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     # 延迟导入 uvicorn，避免只安装 .[cli] 时因缺少 uvicorn 导致整个 CLI 崩溃
     try:
         import uvicorn

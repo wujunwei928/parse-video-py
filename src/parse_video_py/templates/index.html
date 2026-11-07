@@ -8,11 +8,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
     <title>{{ title }}</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@1.0.0/dist/css/mdui.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/mdui@1.0.0/dist/js/mdui.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@1.0.0/dist/css/mdui.min.css"
+          integrity="sha384-2PJ2u4NYg6jCNNpv3i1hK9AoAqODy6CdiC+gYiL2DVx+ku5wzJMFNdE3RoWfBIRP" crossorigin="anonymous"/>
+    <script src="https://cdn.jsdelivr.net/npm/mdui@1.0.0/dist/js/mdui.min.js"
+            integrity="sha384-aB8rnkAu/GBsQ1q6dwTySnlrrbhqDwrDnpVHR2Wgm8pWLbwUnzDcIROX3VvCbaK+" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+            integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"
+            integrity="sha384-PlRSzpewlarQuj5alIadXwjNUX+2eNMKwr0f07ShWYLy8B6TjEbm7ZlcN/ScSbwy" crossorigin="anonymous"></script>
 </head>
 <body>
 <style>
@@ -2840,6 +2845,57 @@ function showThemeNotification(themeName) {
     }, 3000);
 }
 
+// 媒体链接只接受可解析、无 userinfo 的 http/https 地址，防止 javascript: 等注入
+function safeMediaURL(value) {
+    if (typeof value !== 'string' || value === '') {
+        return null;
+    }
+    try {
+        const url = new URL(value);
+        if ((url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password) {
+            return url.href;
+        }
+    } catch (e) {
+        // 无法解析的地址一律拒绝
+    }
+    return null;
+}
+
+// mdui snackbar 以 HTML 渲染消息，先经 textContent 实体化，杜绝消息内容注入
+function showTextSnackbar(message, timeout) {
+    const text = document.createElement('div');
+    text.textContent = message == null ? '' : String(message);
+    const options = { message: text.innerHTML };
+    if (timeout !== undefined) {
+        options.timeout = timeout;
+    }
+    mdui.snackbar(options);
+}
+
+// 用 DOM API 构建下载按钮，链接地址必须通过 safeMediaURL 校验
+function appendDownloadLink(container, label, url, options) {
+    const safeUrl = safeMediaURL(url);
+    if (!safeUrl) {
+        return;
+    }
+    const link = document.createElement('a');
+    link.className = 'mdui-btn mdui-btn-raised';
+    link.href = safeUrl;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.referrerPolicy = 'no-referrer';
+    if (options && options.download) {
+        link.setAttribute('download', options.download);
+    }
+    if (options && options.style) {
+        link.style.cssText = options.style;
+    }
+    const span = document.createElement('span');
+    span.textContent = label;
+    link.appendChild(span);
+    container.appendChild(link);
+}
+
 // 原有的解析功能
 function setValue() {
     var data = document.getElementById("url").value;
@@ -2864,54 +2920,78 @@ function setValue() {
             message: '解析成功'
         });
 
-        let successHtml = '<h4>' + jsonObj.data.title + ' </h4>';
-        successHtml += '<a class="mdui-btn mdui-btn-raised" href="' + jsonObj.data.cover_url + '" target="_blank" download="video" referrerpolicy="no-referrer"><span>下载封面</span></a>';
+        const data = jsonObj.data || {};
+        const result = document.createDocumentFragment();
+        const titleEl = document.createElement('h4');
+        titleEl.textContent = typeof data.title === 'string' ? data.title : '';
+        result.appendChild(titleEl);
+
+        appendDownloadLink(result, '下载封面', data.cover_url, { download: 'video' });
 
         // 如果video_url不为空, 则显示下载视频按钮
-        if (jsonObj.data.video_url != "") {
-            successHtml += '<a class="mdui-btn mdui-btn-raised" href="' + jsonObj.data.video_url + '" target="_blank" download="video" referrerpolicy="no-referrer"><span>下载视频</span></a>';
+        if (data.video_url) {
+            appendDownloadLink(result, '下载视频', data.video_url, { download: 'video' });
         }
 
         // 如果music_url不为空, 则显示下载音频按钮
-        if (jsonObj.data.music_url && jsonObj.data.music_url != "") {
-            successHtml += '<a class="mdui-btn mdui-btn-raised" href="' + jsonObj.data.music_url + '" target="_blank" download="audio" referrerpolicy="no-referrer"><span>下载音频</span></a>';
+        if (data.music_url) {
+            appendDownloadLink(result, '下载音频', data.music_url, { download: 'audio' });
         }
 
-        // 如果 jsonObj.data.images 是数组， 并且长度大于0, 则img展示图片
-        if (jsonObj.data.images && jsonObj.data.images.length > 0) {
-            successHtml += "<hr/>";
-            successHtml += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">';
-            successHtml += '<h4 style="margin: 0;">图集</h4>';
+        // 如果 data.images 是数组， 并且长度大于0, 则img展示图片
+        if (Array.isArray(data.images) && data.images.length > 0) {
+            result.appendChild(document.createElement('hr'));
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;';
+            const galleryTitle = document.createElement('h4');
+            galleryTitle.style.margin = '0';
+            galleryTitle.textContent = '图集';
+            header.appendChild(galleryTitle);
 
             // 将图片数据存储到全局变量,避免在HTML属性中传递大量数据
             const downloadDataId = 'download_data_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             window[downloadDataId] = {
-                images: jsonObj.data.images,
-                title: jsonObj.data.title || ''
+                images: data.images,
+                title: typeof data.title === 'string' ? data.title : ''
             };
             // 使用data属性存储ID,点击时读取全局变量
-            successHtml += '<button class="mdui-btn mdui-color-theme-accent mdui-ripple" ' +
-                          'data-download-id="' + downloadDataId + '" ' +
-                          'onclick="handleDownloadClick(this)"><span>下载全部图片</span></button>';
-            successHtml += '</div>';
+            const downloadButton = document.createElement('button');
+            downloadButton.className = 'mdui-btn mdui-color-theme-accent mdui-ripple';
+            downloadButton.setAttribute('data-download-id', downloadDataId);
+            const buttonLabel = document.createElement('span');
+            buttonLabel.textContent = '下载全部图片';
+            downloadButton.appendChild(buttonLabel);
+            downloadButton.addEventListener('click', function () {
+                handleDownloadClick(downloadButton);
+            });
+            header.appendChild(downloadButton);
+            result.appendChild(header);
 
-            jsonObj.data.images.forEach(function (item) {
-                successHtml += '<div style="display: inline-block; margin: 1em; text-align: center;">';
-                successHtml += '<img src="' + item.url + '" referrerpolicy="no-referrer" style="width: 160px; display: block; margin-bottom: 0.5em;"/>';
-                // 如果 item.live_photo_url 不为空， 显示下载按钮
-                if (item.live_photo_url) {
-                    successHtml += '<a class="mdui-btn mdui-btn-raised" href="' + item.live_photo_url + '" target="_blank" download="video" referrerpolicy="no-referrer" style="text-transform: none;"><span>下载LivePhoto</span></a>';
+            data.images.forEach(function (item) {
+                const cell = document.createElement('div');
+                cell.style.cssText = 'display: inline-block; margin: 1em; text-align: center;';
+                const safeImg = safeMediaURL(item && item.url);
+                if (safeImg) {
+                    const img = document.createElement('img');
+                    img.src = safeImg;
+                    img.referrerPolicy = 'no-referrer';
+                    img.style.cssText = 'width: 160px; display: block; margin-bottom: 0.5em;';
+                    cell.appendChild(img);
                 }
-
-                successHtml += '</div>';
+                // 如果 item.live_photo_url 不为空， 显示下载按钮
+                if (item && item.live_photo_url) {
+                    appendDownloadLink(cell, '下载LivePhoto', item.live_photo_url, {
+                        download: 'video',
+                        style: 'text-transform: none;'
+                    });
+                }
+                result.appendChild(cell);
             });
         }
 
-        $(".down").html(successHtml);
+        document.querySelector('.down').replaceChildren(result);
     } else {
-        mdui.snackbar({
-            message: "解析失败,视频不存在或者链接不正确:<br/>" + jsonObj.msg
-        });
+        showTextSnackbar('解析失败,视频不存在或者链接不正确: ' + (jsonObj.msg == null ? '' : jsonObj.msg));
     }
 }
 
@@ -2946,9 +3026,7 @@ function handleDownloadClick(button) {
         // delete window[downloadDataId];
     } catch (error) {
         console.error('处理下载点击失败:', error);
-        mdui.snackbar({
-            message: '启动下载失败:' + error.message
-        });
+        showTextSnackbar('启动下载失败:' + error.message);
     }
 }
 
@@ -3061,10 +3139,7 @@ async function downloadAllImages(imagesData, title) {
 
     } catch (error) {
         console.error('批量下载失败:', error);
-        mdui.snackbar({
-            message: '批量下载失败：' + error.message,
-            timeout: 5000
-        });
+        showTextSnackbar('批量下载失败：' + error.message, 5000);
     }
 }
 

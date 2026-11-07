@@ -2,7 +2,7 @@ import base64
 import re
 
 from ..utils import create_async_client
-from .base import BaseParser, VideoAuthor, VideoInfo
+from .base import BaseParser, VideoAuthor, VideoInfo, VideoSource
 
 # 匹配 tv.sohu.com/v/{base64}.html 格式的路径
 _sohu_base64_vid_re = re.compile(r"/v/([A-Za-z0-9+/=]+)\.html")
@@ -32,7 +32,9 @@ class Sohu(BaseParser):
             "&sver=6.2.0"
         )
 
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.Sohu,
+        ) as client:
             response = await client.get(api_url, headers=self.get_default_headers())
             response.raise_for_status()
 

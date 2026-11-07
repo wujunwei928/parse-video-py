@@ -1,3 +1,4 @@
+from ..outbound import host_matches, http_hostname
 from .acfun import AcFun
 from .base import VideoInfo, VideoSource
 from .bilibili import BiliBili
@@ -146,27 +147,49 @@ video_source_info_mapping = {
 }
 
 
+class UnsupportedShareUrlError(ValueError):
+    """分享链接无法识别为受支持的平台（固定文案，不回显链接内容）。"""
+
+
+def share_url_source(share_url: str) -> VideoSource:
+    """
+    从分享链接中识别视频平台。
+    按 URL 主机名与平台域名做 DNS 标签边界的后缀匹配，取最长匹配域名；
+    拒绝非 http(s) 协议、非默认端口、携带 userinfo 的链接。
+    :param share_url: 视频分享链接
+    :return: 视频来源平台
+    """
+    host = http_hostname(share_url)
+    if host is None:
+        raise UnsupportedShareUrlError("分享链接不是有效的 http/https 地址")
+
+    source = None
+    matched_domain = ""
+    for item_source, item_source_info in video_source_info_mapping.items():
+        for item_url_domain in item_source_info["domain_list"]:
+            if host_matches(host, item_url_domain) and len(item_url_domain) > len(
+                matched_domain
+            ):
+                source = item_source
+                matched_domain = item_url_domain
+
+    if source is None:
+        raise UnsupportedShareUrlError("分享链接不属于支持的平台")
+
+    return source
+
+
 async def parse_video_share_url(share_url: str) -> VideoInfo:
     """
     解析分享链接, 获取视频信息
     :param share_url: 视频分享链接
     :return:
     """
-    source = ""
-    for item_source, item_source_info in video_source_info_mapping.items():
-        for item_url_domain in item_source_info["domain_list"]:
-            if item_url_domain in share_url:
-                source = item_source
-                break
-        if source:
-            break
-
-    if not source:
-        raise ValueError(f"share url [{share_url}] does not have source config")
+    source = share_url_source(share_url)
 
     url_parser = video_source_info_mapping[source]["parser"]
     if not url_parser:
-        raise ValueError(f"source {source} has no video parser")
+        raise UnsupportedShareUrlError("分享链接不属于支持的平台")
 
     _obj = url_parser()
     video_info = await _obj.parse_share_url(share_url)

@@ -2,7 +2,7 @@ import math
 import re
 
 from ..utils import create_async_client
-from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo
+from .base import BaseParser, ImgInfo, VideoAuthor, VideoInfo, VideoSource
 
 
 class Twitter(BaseParser):
@@ -37,7 +37,9 @@ class Twitter(BaseParser):
             "Referer": "https://platform.twitter.com/",
         }
 
-        async with create_async_client() as client:
+        async with create_async_client(
+            source=VideoSource.Twitter,
+        ) as client:
             response = await client.get(api_url, headers=headers)
             response.raise_for_status()
 
@@ -135,7 +137,9 @@ class Twitter(BaseParser):
         """
         解析 t.co 短链接，获取真实 URL
         """
-        async with create_async_client(follow_redirects=False) as client:
+        async with create_async_client(
+            source=VideoSource.Twitter, follow_redirects=False
+        ) as client:
             response = await client.get(
                 tco_url,
                 headers={
