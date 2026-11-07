@@ -2,10 +2,9 @@
 name = "parse-video-py"
 version = "0.0.3"
 description = "视频解析服务，支持 20+ 平台去水印解析"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 dependencies = [
-    "aiohttp>=3.9",
     "fake-useragent>=1.5",
     "lxml>=5.0",
     "parsel>=1.9",

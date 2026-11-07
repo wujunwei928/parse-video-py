@@ -1,7 +1,7 @@
-FROM python:3.10-slim
+FROM python:3.13-slim
 
-# 安装 uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# 安装 uv（固定版本，避免 :latest 漂移；升级时同步修改此 tag）
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /usr/local/bin/uv
 
 # 设置工作目录
 WORKDIR /app
@@ -12,6 +12,10 @@ COPY src/ src/
 
 # 使用 uv 安装依赖（包含所有可选依赖）
 RUN uv pip install --system ".[all]"
+
+# 以非 root 用户运行
+RUN useradd --create-home --uid 1001 appuser
+USER appuser
 
 # 暴露端口
 EXPOSE 8000

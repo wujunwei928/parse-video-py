@@ -168,3 +168,7 @@ uv.lock
 
 # codex
 .codex
+
+# Agent 会话产物（本机插件）
+.v2c/
+.video_agent/

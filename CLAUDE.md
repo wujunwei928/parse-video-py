@@ -32,7 +32,7 @@ Source code lives under `src/parse_video_py/` (hatchling build).
 
 ### Local Development
 ```bash
-# Create venv and install all dependencies (Python >= 3.10 required)
+# Create venv and install all dependencies (Python >= 3.12 required)
 uv venv && uv pip install -e ".[all]"
 
 # Install with optional groups
