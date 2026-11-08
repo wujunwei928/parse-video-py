@@ -135,6 +135,34 @@ docker run -d -p 8000:8000 -e PARSE_VIDEO_USERNAME=username -e PARSE_VIDEO_PASSW
 docker run -d -p 8000:8000 -e PARSE_VIDEO_PROXY=http://proxy.example.com:端口 wujunwei928/parse-video-py
 ```
 
+## **🪄 赞助商**
+
+<table role="presentation">
+<tr>
+<td width="200" align="center">
+<a href="https://proxy-seller.com/?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=partner_promo&amp;utm_term=github&amp;partner=8292E0545DE24754"><img src="resources/proxy-seller-logo.png" alt="Proxy-Seller Logo" width="200" height="200"></a>
+</td>
+<td align="left">
+<strong>Proxy-Seller 代理服务</strong><br><br>
+<a href="https://proxy-seller.com/?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=partner_promo&amp;utm_term=github&amp;partner=8292E0545DE24754">Proxy-Seller</a> 是面向网页抓取、数据采集的专业代理服务商，提供住宅、移动、IPv4、IPv6、ISP五大产品线，覆盖全球 220+ 地区，全球用户已超 18.5 万。支持 HTTP(S) 与 SOCKS5 协议、静态/轮换 IP 灵活切换、高并发请求支持，以及提供 RESTful API 与多语言 SDK（Python、Node.js、PHP、Java、Go），并配备 24/7 技术支持。适合多平台解析工具使用，用户下单时使用优惠码 <strong>ParseVideo666</strong> 可享 15% 折扣(移动代理除外)。
+<br><br>
+<a href="https://proxy-seller.com/?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=partner_promo&amp;utm_term=github&amp;partner=8292E0545DE24754"><strong>访问 Proxy-Seller →</strong></a>
+</td>
+</tr>
+</table>
+
+购买后，将以下占位符替换为 Proxy-Seller 提供的用户名、密码、代理地址和端口：
+
+```bash
+docker run -d -p 8000:8000 \
+  -e PARSE_VIDEO_PROXY='http://YOUR_LOGIN:YOUR_PASSWORD@YOUR_PROXY_IP:YOUR_PORT' \
+  wujunwei928/parse-video-py
+```
+
+用户名或密码包含 `@`、`:` 等特殊字符时，需先进行 URL 编码。
+
+---
+
 # 查看前端页面
 访问: http://127.0.0.1:8000/
 
